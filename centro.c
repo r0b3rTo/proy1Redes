@@ -6,7 +6,7 @@
    Código del Programa Servidor
    Integrantes:
    Héctor López   05-38421
-   Roberto Omaña    
+   Roberto Omaña  06-39990  
 **/
 
 #include <unistd.h>
@@ -18,6 +18,9 @@
 //Includes relacionados a las funciones de red
 #include <sys/socket.h>
 #include <sys/types.h>
+
+//Include sobre el manejo de errores
+#include "errors.h"
 
 /*usage
  *Descripción: uso apropiado del programa
