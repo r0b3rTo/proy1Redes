@@ -1,0 +1,5 @@
+LEEME.txt
+
+Los modificadores del programa centro.c tienen la siguiente restricción: Se debe indicar el modificador -cp con su valor correspondiente antes del modificador
+-i y su valor de inicialización. Sin embargo, en caso de que dicha restricción no se cumpla, el programa le indicará a través de un mensaje al usuario la 
+manera correcta de su invocación.
