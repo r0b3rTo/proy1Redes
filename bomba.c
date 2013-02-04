@@ -25,14 +25,31 @@
 //Include sobre el manejo de la lista de Servidores
 #include "ListaServidor.h"
 
-/*usage
- *Descripción: uso apropiado del programa
- *Parámetro de entrada: status
+
+/*Funcion obtenerCentros
+*    Parametros de entrada: Una estructura de tipo FILE.
+*    Parametro de salida: Una cadena de caracteres con la respuesta del archivo.
+*    Toma un apuntador a un file, y lo recorre concatenando la respuesta
+*    a una cadena de caracteres.
 */
-
-//void usage(){
-
-//}
+char* obtenerCentros(FILE *archivoCentros){
+   char centrosInfo[100];
+   char* centros = (char*)malloc(sizeof(char)*2056);
+   if(centros == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
+   char* aux;
+   strcpy(centros," ");
+   while(fgets(centrosInfo,sizeof(centrosInfo),archivoCentros) != NULL){
+       aux = (char*)malloc(sizeof(char)*2056);
+       if(aux == NULL){
+         terminar("Error de asignacion de memoria: " );
+       }
+       strcpy(aux,centrosInfo);
+       strcat(centros,centrosInfo);
+   }
+   return centros;
+}
 
 int main(int argc, char *argv[]){
    
@@ -78,7 +95,7 @@ int main(int argc, char *argv[]){
             }else{
                if(capacidadMaxima == -1){
                   //No se ha inicializado el valor del modificador 'cp'-> capacidadMaxima
-                  printf("El modificador 'i' debe ir precedido por el modificador 'cp' y su valor correspondiente.\n");
+                  printf("El modificador 'i' debe ir precedido por el modificador 'cp' y su valor corresponterminarnte.\n");
                }else{
                   //El valor inventario no se encuentra entre 0 y el valor de capacidadMaxima
                   printf("Debe proveer un valor para el modificador 'i' entre 0 y %d (Capacidad Máxima)\n", capacidadMaxima);
