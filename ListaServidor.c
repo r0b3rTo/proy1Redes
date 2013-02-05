@@ -23,7 +23,7 @@
 *    un entero para su direccion, otro entero para su puerto y otro más para
 *    su tiempo de respuesta.
 *    Parametro de salida: Una estructura de tipo ListaServidor.
-*    Recibe la cabeza de la lista e inserta un nuevo Servidor.
+*    Recibe la listaServidores de la lista e inserta un nuevo Servidor.
 */
 ListaServidor insertarServidor(ListaServidor listaServidores,char* nombre, char* direccion, 
      int puerto, int tiempoRespuesta)
@@ -37,18 +37,10 @@ ListaServidor insertarServidor(ListaServidor listaServidores,char* nombre, char*
      if(auxDireccion == NULL){
           terminar("Error de asignacion de memoria: " );
      }
-     int auxPuerto = (int)malloc(sizeof(int)*100);
-     if(auxPuerto == NULL){
-          terminar("Error de asignacion de memoria: " );
-     }
-     int auxTiempoRespuesta = (int)malloc(sizeof(int)*100);
-     if(auxTiempoRespuesta == NULL){
-          terminar("Error de asignacion de memoria: " );
-     }
+     int auxPuerto = puerto;
+     int auxTiempoRespuesta = tiempoRespuesta;
      strcpy(auxnombre,nombre);
      strcpy(auxDireccion,direccion);
-     auxPuerto = puerto;
-     auxTiempoRespuesta = tiempoRespuesta;
      nuevoServidor =(SERVIDOR*)malloc(sizeof(SERVIDOR));
      if(nuevoServidor == NULL){
           terminar("Error de asignacion de memoria: " );
@@ -57,7 +49,7 @@ ListaServidor insertarServidor(ListaServidor listaServidores,char* nombre, char*
      nuevoServidor->direccion = auxDireccion;
      nuevoServidor->puerto = auxPuerto;
      nuevoServidor->tiempoRespuesta = auxTiempoRespuesta;
-     nuevoServidor-> next = listaServidores; 
+     nuevoServidor-> siguiente = listaServidores; 
      listaServidores = nuevoServidor;
      
      return listaServidores;       
@@ -82,7 +74,7 @@ ListaServidor insertarTiempoRespuesta(ListaServidor listaServidores, char* nombr
     }
     copiaListaServidores = listaServidores;
     while(listaServidores!=NULL && strcmp(listaServidores->nombre,nombre)!=0){
-        listaServidores=listaServidores->next;
+        listaServidores=listaServidores->siguiente;
     }
     if (listaServidores != NULL){ 
         listaServidores->tiempoRespuesta = tiempoRespuesta;
@@ -107,7 +99,7 @@ ListaServidor buscarServidor(ListaServidor listaServidores, char* nombre){
    ListaServidor servidorBuscado = NULL;
    while(listaServidores != NULL){
       if (strcmp(listaServidores->nombre,nombre) != 0){
-          listaServidores = listaServidores->next;
+          listaServidores = listaServidores->siguiente;
       } else {
           servidorBuscado =(SERVIDOR*)malloc(sizeof(SERVIDOR));
           if(servidorBuscado == NULL){
@@ -121,7 +113,43 @@ ListaServidor buscarServidor(ListaServidor listaServidores, char* nombre){
       } 
    }
    return servidorBuscado;
-}   
+}
+
+/*
+ * Funcion ordenarLista
+ */
+void ordenarLista(ListaServidor *listaServidores){
+    ListaServidor copiaListaServidores;
+    copiaListaServidores=(SERVIDOR*)malloc(sizeof(SERVIDOR));
+    if(copiaListaServidores == NULL){
+         terminar("Error de asignacion de memoria: " );
+    }
+    copiaListaServidores = *listaServidores;
+    ListaServidor aux, aux2, anterior;
+    aux= *listaServidores;
+    anterior = NULL;
+    while(copiaListaServidores != NULL){
+        aux2 = aux->siguiente;
+        if(aux->tiempoRespuesta > aux2->tiempoRespuesta){
+            aux->siguiente = aux2->siguiente;
+            aux2->siguiente = aux;
+            if(anterior == NULL){
+                *listaServidores = aux2;
+                anterior = *listaServidores;
+            }
+            else{
+                anterior->siguiente = aux2;
+                anterior = aux2;
+            }
+            aux = anterior->siguiente;
+        }
+        else{
+            anterior = aux;
+            aux = aux2;
+        }
+        copiaListaServidores = copiaListaServidores->siguiente;
+    }
+}
 
 
 /*   
@@ -134,7 +162,7 @@ void imprimirServidores(ListaServidor listaServidores){
 
    while(listaServidores!=NULL){
         printf("%s \n",listaServidores->nombre);
-        listaServidores = listaServidores->next;
+        listaServidores = listaServidores->siguiente;
    }
    printf("\n");
 }

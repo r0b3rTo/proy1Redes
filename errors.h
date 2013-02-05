@@ -13,6 +13,9 @@
 #ifndef _ERRORS_H_
 #define _ERROR_H_
 
+extern char *program_invocation_name;
+extern char *program_invocation_short_name;
+
 extern void errorFatal(char *mensaje);
 extern void mensajeError(char *mensaje);
 extern void terminar(char*mensaje); 

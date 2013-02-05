@@ -15,10 +15,10 @@
 
 struct Servidor{
        char* nombre;
-       int direccion;
+       char* direccion;
        int puerto;
        int tiempoRespuesta;
-       struct Servidor *next; 
+       struct Servidor *siguiente; 
 };
 
 typedef struct Servidor SERVIDOR;/*por convencion en mayusculas */
