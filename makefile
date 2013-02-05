@@ -5,7 +5,7 @@ CFLAGS = -g
 #LIBS = -lsocket -lnsl
 
 FUENTES= ListaServidor.o errors.o bomba.o centro.o bomba centro
-# El programa esta constituido por 4 archivos:
+# El programa esta constituido por 8 archivos:
 all : bomba centro
 
 centro: centro.o errors.o ListaServidor.o
@@ -14,7 +14,7 @@ centro: centro.o errors.o ListaServidor.o
 bomba: bomba.o errors.o ListaServidor.o
 	$(CC) bomba.o errors.o ListaServidor.o -o bomba
 
-centro.o: centro.c centro.h ListaServidor.h errors.h
+centro.o: centro.c ListaServidor.h errors.h
 	$(CC) -c centro.c
 
 bomba.o: bomba.c ListaServidor.h errors.h
@@ -27,4 +27,4 @@ errors.o : errors.c errors.h
 	$(CC) -c errors.c
 
 clean:
-	rm -f $(FUENTES)
+	rm -f $(FUENTES) *.c~ *.h~
