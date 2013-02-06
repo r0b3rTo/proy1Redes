@@ -27,4 +27,4 @@ errors.o : errors.c errors.h
 	$(CC) -c errors.c
 
 clean:
-	rm -f $(FUENTES) *.c~ *.h~
+	rm -f $(FUENTES) *.c~ *.h~ *~

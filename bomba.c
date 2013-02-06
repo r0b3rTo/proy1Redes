@@ -18,7 +18,7 @@
 *    Descripción: Toma el apuntador a un file, y lo recorre insertando todos
 *    los centros del archivo en la lista.
 */
-ListaServidor obtenerCentros(ListaServidor *listaServidores, FILE *archivoServidores){
+ListaServidor obtenerCentros(ListaServidor listaServidores, FILE *archivoServidores){
   char servidorInfo [100];
   char* nombreServidor;
   char* direccionServidor;
@@ -35,9 +35,9 @@ ListaServidor obtenerCentros(ListaServidor *listaServidores, FILE *archivoServid
       nombreServidor = strtok(servidorInfo,"&");
       direccionServidor = strtok(servidorInfo,"&");
       puertoServidor = atoi(strtok(NULL,"\n"));
-      *listaServidores = insertarServidor(*listaServidores,nombreServidor,direccionServidor,puertoServidor,0);
+      listaServidores = insertarServidor(listaServidores,nombreServidor,direccionServidor,puertoServidor,0);
   }
-  return *listaServidores;
+  return listaServidores;
 }
 
 /* verificacionNombreBomba
@@ -78,7 +78,7 @@ void verificacionFicheroCentros(char* ficheroCentros, int *flagFC){
    if( strcmp(optarg,"") == 0 ){
       printf("Debe proveer una dirección de archivo distinta de vacío para el modificador '-fc'.\n");
    }else{
-      if(stat(ficheroCentros, &estadoArchivo) == -1 && errno == ENOENT){
+      if(stat(ficheroCentros, &estadoArchivo) == -1){
          printf("El fichero no existe o el archivo está vacío.\n");
       }else{
          ficheroCentros = optarg;
@@ -241,8 +241,26 @@ void inicializarBomba(Bomba* bomba){
 }
 
 int main(int argc, char *argv[]){
-   
    Bomba bomba;
+   ListaServidor *listaServidores;
+   FILE *archivoCentros;
+   int descriptorSocket, numeroPuerto;
+   struct sockaddr_in direccionServidor;
+   
    inicializarBomba(&bomba);
    manejarParametros(argc, argv, &bomba);
+   
+   archivoCentros = fopen(bomba.ficheroCentros,"r");
+   if(archivoCentros == NULL){
+      errorFatal("Error: No se puede accesar al archivo de usuarios");
+   }
+   *listaServidores = obtenerCentros(*listaServidores, archivoCentros);
+   fclose(archivoCentros);
+   
+   descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
+   if (descriptorSocket < 0){
+      errorFatal("Error: No se pudo crear el socket");
+   }
+   close(descriptorSocket);
+   exit(EXIT_SUCCESS);   
 }

@@ -13,13 +13,19 @@
 #include <stdlib.h>
 #include <time.h>
 
-struct Servidor{
-       char* nombre;
-       char* direccion;
-       int puerto;
-       int tiempoRespuesta;
-       struct Servidor *siguiente; 
+struct Servidor {
+   char* nombre;
+   char* direccion;
+   int puerto;
+   int tiempoRespuesta;
+   struct Servidor *siguiente; 
 };
 
 typedef struct Servidor SERVIDOR;/*por convencion en mayusculas */
 typedef struct Servidor *ListaServidor;/*Direccion de inicio de la lista */
+
+extern ListaServidor insertarServidor(ListaServidor, char*, char*,int,int);
+extern ListaServidor insertarTiempoRespuesta(ListaServidor,char*,int);
+extern ListaServidor buscarServidor(ListaServidor,char*);
+extern void ordenarLista(ListaServidor*);
+extern void imprimirServidores(ListaServidor);

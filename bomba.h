@@ -16,8 +16,9 @@
 #include <sys/stat.h>
 
 //Includes relacionados a las funciones de red
-#include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
 
 //Include sobre el manejo de errores
 #include "errors.h"
