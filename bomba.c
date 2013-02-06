@@ -33,8 +33,8 @@ ListaServidor obtenerCentros(ListaServidor listaServidores, FILE *archivoServido
          terminar("Error de asignacion de memoria: " );
       }
       nombreServidor = strtok(servidorInfo,"&");
-      direccionServidor = strtok(servidorInfo,"&");
-      puertoServidor = atoi(strtok(NULL,"\n"));
+      direccionServidor = strtok(NULL,"&");
+      puertoServidor = atoi(strtok(NULL,"&\n"));
       listaServidores = insertarServidor(listaServidores,nombreServidor,direccionServidor,puertoServidor,0);
   }
   return listaServidores;
@@ -58,7 +58,7 @@ void verificacionNombreBomba(char** nombreBomba, int *flagN){
    }else{
       *nombreBomba = optarg;
       *flagN = 1;
-   }           
+   }
 }
 
 /* verificacionFicheroCentros
@@ -73,18 +73,20 @@ void verificacionNombreBomba(char** nombreBomba, int *flagN){
  * flagFC: apuntador a la variable que indica si el valor del parámetro es 
  * correcto.
 */
-void verificacionFicheroCentros(char* ficheroCentros, int *flagFC){
-   struct stat estadoArchivo;
+void verificacionFicheroCentros(char** ficheroCentros, int *flagFC){
+   
    if( strcmp(optarg,"") == 0 ){
       printf("Debe proveer una dirección de archivo distinta de vacío para el modificador '-fc'.\n");
    }else{
-      if(stat(ficheroCentros, &estadoArchivo) == -1){
-         printf("El fichero no existe o el archivo está vacío.\n");
+      FILE *archivo = fopen(optarg,"r");
+      if(archivo == NULL){
+         printf("El fichero no existe.\n");
       }else{
-         ficheroCentros = optarg;
+         fclose(archivo);
+         *ficheroCentros = optarg;
          *flagFC = 1;
       }
-   }           
+   }
 }
 
 
@@ -188,7 +190,7 @@ void manejarParametros(int argc, char *argv[], Bomba* bomba){
    extern int optopt;
    
    //Lectura de parámetros
-   while((opt = getopt_long_only(argc, argv, "n:m:i:c:f", long_options, &option_index)) != -1){
+   while((opt = getopt_long_only(argc, argv, ":n:i:c:", long_options, &option_index)) != -1){
       switch(opt){
          case 'n':
             verificacionNombreBomba(&bomba->nombreBomba, &flagN);
@@ -203,7 +205,7 @@ void manejarParametros(int argc, char *argv[], Bomba* bomba){
             verificacionEntero(opt, 1, 1000, &bomba->consumo, &flagC);
             break;
          case 'f':
-             verificacionFicheroCentros(bomba->ficheroCentros, &flagFC);
+             verificacionFicheroCentros(&bomba->ficheroCentros, &flagFC);
              break;
          case ':':
             if(optopt == 'm'){
@@ -242,8 +244,8 @@ void inicializarBomba(Bomba* bomba){
 
 int main(int argc, char *argv[]){
    Bomba bomba;
-   ListaServidor *listaServidores;
    FILE *archivoCentros;
+   ListaServidor listaServidores = NULL;
    int descriptorSocket, numeroPuerto;
    struct sockaddr_in direccionServidor;
    
@@ -254,8 +256,10 @@ int main(int argc, char *argv[]){
    if(archivoCentros == NULL){
       errorFatal("Error: No se puede accesar al archivo de usuarios");
    }
-   *listaServidores = obtenerCentros(*listaServidores, archivoCentros);
+   listaServidores = (SERVIDOR*)malloc(sizeof(SERVIDOR));
+   listaServidores = obtenerCentros(listaServidores, archivoCentros);
    fclose(archivoCentros);
+   imprimirServidores(listaServidores);
    
    descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
    if (descriptorSocket < 0){

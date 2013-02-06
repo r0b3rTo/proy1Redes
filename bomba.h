@@ -34,7 +34,6 @@
 */
 static struct option long_options[] = {
     {"cp", required_argument, 0, 'm'},
-    {"c", required_argument, 0, 'c'},
     {"fc", required_argument, 0, 'f'},
     {0, 0, 0, 0}
 };

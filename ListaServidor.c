@@ -159,7 +159,7 @@ void ordenarLista(ListaServidor *listaServidores){
 */
 void imprimirServidores(ListaServidor listaServidores){
 
-   while(listaServidores!=NULL){
+   while(listaServidores != NULL){
         printf("%s \n",listaServidores->nombre);
         listaServidores = listaServidores->siguiente;
    }
