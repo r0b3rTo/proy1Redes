@@ -9,124 +9,240 @@
    Roberto Omaña  06-39990  
 **/
 
-#include <unistd.h>
-#include <stdlib.h>
-#include <stdio.h>
-#include <getopt.h>
-#include <string.h>
+#include "bomba.h"
 
-//Includes relacionados a las funciones de red
-#include <sys/socket.h>
-#include <sys/types.h>
-
-//Include sobre el manejo de errores
-#include "errors.h"
-
-//Include sobre el manejo de la lista de Servidores
-#include "ListaServidor.h"
-
-
-/*Funcion obtenerCentros
-*    Parametros de entrada: Una estructura de tipo FILE.
-*    Parametro de salida: Una cadena de caracteres con la respuesta del archivo.
-*    Toma un apuntador a un file, y lo recorre concatenando la respuesta
-*    a una cadena de caracteres.
+/* Funcion obtenerCentros
+*    Parametros de entrada: Una lista de Servidores y una estructura de tipo FILE,
+*    que apunta a un archivo abierto.
+*    Parametro de salida: Una lista de Servidores.
+*    Descripción: Toma el apuntador a un file, y lo recorre insertando todos
+*    los centros del archivo en la lista.
 */
-char* obtenerCentros(FILE *archivoCentros){
-   char centrosInfo[100];
-   char* centros = (char*)malloc(sizeof(char)*2056);
-   if(centros == NULL){
-      terminar("Error de asignacion de memoria: " );
-   }
-   char* aux;
-   strcpy(centros," ");
-   while(fgets(centrosInfo,sizeof(centrosInfo),archivoCentros) != NULL){
-       aux = (char*)malloc(sizeof(char)*2056);
-       if(aux == NULL){
+ListaServidor obtenerCentros(ListaServidor *listaServidores, FILE *archivoServidores){
+  char servidorInfo [100];
+  char* nombreServidor;
+  char* direccionServidor;
+  int puertoServidor;
+  while(fgets(servidorInfo,sizeof(servidorInfo),archivoServidores) != NULL){
+      nombreServidor = (char*)malloc(sizeof(char)*100);
+      if(nombreServidor == NULL){
          terminar("Error de asignacion de memoria: " );
-       }
-       strcpy(aux,centrosInfo);
-       strcat(centros,centrosInfo);
-   }
-   return centros;
+      }
+      direccionServidor = (char*)malloc(sizeof(char)*100);
+      if(direccionServidor == NULL){
+         terminar("Error de asignacion de memoria: " );
+      }
+      nombreServidor = strtok(servidorInfo,"&");
+      direccionServidor = strtok(servidorInfo,"&");
+      puertoServidor = atoi(strtok(NULL,"\n"));
+      *listaServidores = insertarServidor(*listaServidores,nombreServidor,direccionServidor,puertoServidor,0);
+  }
+  return *listaServidores;
 }
 
-int main(int argc, char *argv[]){
-   
+/* verificacionNombreBomba
+ * Descripción: Procedimiento encargado de la verificación del valor del 
+ * modificador -n.
+ * En caso de que el valor no sea válido, imprime un mensaje de error.
+ * En caso de que el valor sea válido, le coloca un valor TRUE a la variable flagN para 
+ * indicar que se inicializó con éxito el parámetro.
+ * Parámetros de entrada:
+ * nombreBomba: apuntador a la cadena de caracteres que mantiene el valor del
+ * nombre de la Bomba.
+ * flagN: apuntador a la variable que indica si el valor del parámetro es 
+ * correcto.
+*/
+void verificacionNombreBomba(char** nombreBomba, int *flagN){
+   if( strcmp(optarg,"") == 0 ){
+      printf("Debe proveer un nombre de Bomba distinto de vacío para el modificador '-n'.\n");
+   }else{
+      *nombreBomba = optarg;
+      *flagN = 1;
+   }           
+}
+
+/* verificacionFicheroCentros
+ * Descripción: Procedimiento encargado de la verificación del valor del 
+ * modificador -fc.
+ * En caso de que el valor no sea válido, imprime un mensaje de error.
+ * En caso de que el valor sea válido, le coloca un valor TRUE a la variable flagFC para 
+ * indicar que se inicializó con éxito el parámetro.
+ * Parámetros de entrada:
+ * ficheroCentros: apuntador a la cadena de caracteres que mantiene el valor de
+ * la dirección del archivo contenedor de los datos de los centros.
+ * flagFC: apuntador a la variable que indica si el valor del parámetro es 
+ * correcto.
+*/
+void verificacionFicheroCentros(char* ficheroCentros, int *flagFC){
+   struct stat estadoArchivo;
+   if( strcmp(optarg,"") == 0 ){
+      printf("Debe proveer una dirección de archivo distinta de vacío para el modificador '-fc'.\n");
+   }else{
+      if(stat(ficheroCentros, &estadoArchivo) == -1 && errno == ENOENT){
+         printf("El fichero no existe o el archivo está vacío.\n");
+      }else{
+         ficheroCentros = optarg;
+         *flagFC = 1;
+      }
+   }           
+}
+
+
+/* verificacionEntero
+ * Descripción: Procedimiento encargado de la verificación del valor de
+ * los modificadores enteros.
+ * En caso de que el valor no sea válido, imprime un mensaje de error.
+ * En caso de que el valor sea válido, le coloca un valor TRUE a la variable flagParametro
+ * para indicar que se inicializó con éxito el parámetro.
+ * Parámetros de entrada:
+*/
+void verificacionEntero(int opt, int minimo, int maximo, int *variableBomba, int *flagParametro){
+   float temp = -1.0;
+   sscanf(optarg,"%f",&temp);
+   int aux = (int) temp;
+   float aux2 = temp-aux;
+
+   if( (aux2 == 0) && (minimo <= temp) && (temp <= maximo) ){
+      *variableBomba = temp;
+      *flagParametro = 1;
+   }else{
+      if( (opt == 'i') && (maximo == -1) ){
+         //No se ha inicializado el valor del modificador 'cp'-> capacidadMaxima
+         printf("El modificador '-i' debe ir precedido por el modificador '-cp' y su valor correspondiente.\n");
+      }else if( aux2 != 0 ){
+         //Se introdujo un valor flotante
+         if( opt == 'm' ){
+            printf("El valor del modificador '-cp' debe ser entero.\n");      
+         }else{
+            printf("El valor del modificador '%c' debe ser entero.\n", opt);
+         }
+      }else{
+         //El valor del parámetro no se encuentra entre el valor de mínimo y máximo
+         if( opt == 'm' ){
+            printf("Debe proveer un valor para el modificador '-cp' entre %d y %d.\n", minimo, maximo);
+         }else{
+            printf("Debe proveer un valor para el modificador '-%c' entre %d y %d.\n", opt, minimo, maximo);
+         }
+      }
+   }
+}
+
+/* imprimirIndicaciones
+ * Descripción: Función que imprime en pantalla la manera apropiada de 
+ * invocar el programa.
+ * Parámetro de entrada: 
+ * estado: entero que indica si el programa termina con éxito o no.
+*/
+void imprimirIndicaciones(){                                                                                                     
+      printf ("Uso: %s -n nombreBomba -cp capacidadMaxima -i inventario -c consumo -fc ficheroCentros\n", PROGRAM_NAME);           
+      fputs ("Inicialización del programa bomba.\n\
+      -n,   indica el nombre de la bomba (cadena de caracteres sin espacios)\n\
+      -cp,  capacidad máxima en litros (entero entre 38000 y 380000)\n\
+      -i,   inventario actual (entero entre 0 y capacidad máxima)\n\
+      -c,   consumo promedio en litros por minuto (entero entre 0 y 1000)\n\
+      -fc,  nombre del archivo que contiene los datos de los centros de distribución\n", stdout);                                                 
+}
+
+/* verificarParametrosFaltantes
+ * Descripción: Procedimiento que verifica que todos los parámetros de 
+ * invocación del programa se hayan inicializado de manera correcta.
+ * Parámetros de entrada:
+ * flagN
+*/
+void verificarParametrosFaltantes(int flagN, int flagCP, int flagI, int flagC, int flagFC){
+   if(!flagN){
+      printf("Falta el modificador '-n' y su valor correspondiente.\n");
+   } 
+   if(!flagCP){
+      printf("Falta el modificador '-cp' y su valor correspondiente.\n");
+   } 
+   if(!flagI){
+      printf("Falta el modificador '-i' y su valor correspondiente.\n");
+   } 
+   if(!flagC){
+      printf("Falta el modificador '-c' y su valor correspondiente.\n");
+   }
+   if(!flagFC){
+      printf("Falta el modificador '-fc' y su valor correspondiente.\n");
+   } 
+   if(!flagN || !flagCP || !flagI || !flagC || !flagFC){
+      imprimirIndicaciones();
+      terminar("Error en la invocación del programa: ");
+   } 
+}
+
+
+/* manejarParametros
+ * Descripción: Procedimiento que maneja apropiadamente los parámetros 
+ * introducidos como modificadores a través de la línea de comandos.
+ * Parámetros de entrada:
+*/
+void manejarParametros(int argc, char *argv[], Bomba* bomba){
    int flagN = 0;
    int flagCP = 0;
    int flagI = 0;
    int flagC = 0;
-   int flagF = 0;
-
+   int flagFC = 0;
    int opt;
    int option_index;
-   char* nombreBomba = "";
-   int capacidadMaxima = -1;
-   int inventario = -1;
-   int consumoPromedio = -1;
    extern int optopt;
-
-   static struct option long_options[] = {
-      {"cp", required_argument, 0, 'm'},
-      {"c", required_argument, 0, 'c'},
-      {"fc", required_argument, 0, 'f'},
-      {0, 0, 0, 0}
-   };
-
+   
    //Lectura de parámetros
    while((opt = getopt_long_only(argc, argv, "n:m:i:c:f", long_options, &option_index)) != -1){
       switch(opt){
          case 'n':
-            if( strcmp(optarg,"") == 0 ){
-               printf("Debe proveer un nombre de la Bomba distinto de vacío para el modificador 'n'.\n");
-            }else{
-               nombreBomba = optarg;
-               flagN = 1;
-               printf("Opción n con valor '%s'\n", nombreBomba);
-            }           
-            break;
-         case 'i':
-            inventario = atoi(optarg);
-            if( (0 <= inventario) && (inventario <= capacidadMaxima) ){
-               //BUG Está aceptando valores del modificador i que no son números
-               flagI = 1;
-               printf("Opción i con valor '%d'\n", inventario);
-            }else{
-               if(capacidadMaxima == -1){
-                  //No se ha inicializado el valor del modificador 'cp'-> capacidadMaxima
-                  printf("El modificador 'i' debe ir precedido por el modificador 'cp' y su valor corresponterminarnte.\n");
-               }else{
-                  //El valor inventario no se encuentra entre 0 y el valor de capacidadMaxima
-                  printf("Debe proveer un valor para el modificador 'i' entre 0 y %d (Capacidad Máxima)\n", capacidadMaxima);
-               }
-            }
-            break;
-         case 'c':
-            printf("Opción c con valor '%s'\n", optarg);
-            break;
-         case 'f':
-            printf("Opción f con valor '%s'\n", optarg);
+            verificacionNombreBomba(&bomba->nombreBomba, &flagN);
             break;
          case 'm':
-            capacidadMaxima = atoi(optarg);
-            if( (38000 <= capacidadMaxima) && (capacidadMaxima <= 3800000) ){
-               flagC = 1;
-               printf("Opción c con valor '%d'\n", capacidadMaxima);
-            }else{              
-               printf("Debe proveer un valor entre 38.000 y 3.800.000 para el modificador 'cp'.\n");
-            }
+            verificacionEntero(opt, 38000, 3800000, &bomba->capacidadMaxima, &flagCP);
             break;
+         case 'i':
+            verificacionEntero(opt, 0, bomba->capacidadMaxima, &bomba->inventario, &flagI);
+            break;
+         case 'c':
+            verificacionEntero(opt, 1, 1000, &bomba->consumo, &flagC);
+            break;
+         case 'f':
+             verificacionFicheroCentros(bomba->ficheroCentros, &flagFC);
+             break;
          case ':':
-            printf("Falta el valor del modificador '%c'.\n", optopt);
+            if(optopt == 'm'){
+               printf("Falta el valor del modificador '-cp'.\n");
+            }else if(optopt == 'f'){
+               printf("Falta el valor del modificador '-fc'.\n");
+            }else{
+               printf("Falta el valor del modificador '-%c'.\n", optopt);
+            }
             break;
          case '?':
             printf("Opción desconocida %s\n", argv[optind-1]);
             break;
          default:         
-            printf("?? getopt retornó código del character 0%o ??\n", opt);
-            //usage(EXIT_FAILURE);      
+            imprimirIndicaciones();
+            terminar("Error en la invocación del programa: ");
       }
    }
+   verificarParametrosFaltantes(flagN, flagCP, flagI, flagC, flagFC);
+}
 
+
+/* inicializarBomba
+ * Descripción: Procedimiento que inicializa la estructura Bomba para evitar
+ * que el programa se comporte de manera errónea a causa de valores basura.
+ * Parámetro de entrada: 
+ * bomba: apuntador a la estructura Bomba
+*/
+void inicializarBomba(Bomba* bomba){
+   bomba->nombreBomba = "";
+   bomba->capacidadMaxima = -1;
+   bomba->inventario = -1;
+   bomba->consumo = -1;
+   bomba->ficheroCentros = "";
+}
+
+int main(int argc, char *argv[]){
+   
+   Bomba bomba;
+   inicializarBomba(&bomba);
+   manejarParametros(argc, argv, &bomba);
 }

@@ -14,10 +14,10 @@ centro: centro.o errors.o ListaServidor.o
 bomba: bomba.o errors.o ListaServidor.o
 	$(CC) bomba.o errors.o ListaServidor.o -o bomba
 
-centro.o: centro.c ListaServidor.h errors.h
+centro.o: centro.c centro.h ListaServidor.h errors.h
 	$(CC) -c centro.c
 
-bomba.o: bomba.c ListaServidor.h errors.h
+bomba.o: bomba.c bomba.h ListaServidor.h errors.h
 	$(CC) -c bomba.c
 
 ListaServidor.o : ListaServidor.c ListaServidor.h

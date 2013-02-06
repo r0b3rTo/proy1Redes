@@ -10,6 +10,10 @@
    Roberto Omaña  06-39990  
 **/
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <errno.h>
+
 #ifndef _ERRORS_H_
 #define _ERROR_H_
 

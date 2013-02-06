@@ -25,7 +25,7 @@
 *    Parametro de salida: Una estructura de tipo ListaServidor.
 *    Recibe la listaServidores de la lista e inserta un nuevo Servidor.
 */
-ListaServidor insertarServidor(ListaServidor listaServidores,char* nombre, char* direccion, 
+ListaServidor insertarServidor(ListaServidor listaServidores, char* nombre, char* direccion, 
      int puerto, int tiempoRespuesta)
 { 
      ListaServidor nuevoServidor;

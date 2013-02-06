@@ -9,8 +9,6 @@
    Roberto Omaña  06-39990  
 **/
 
-#include <stdio.h>
-#include <stdlib.h>
 #include "errors.h"
 
 
