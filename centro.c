@@ -11,6 +11,26 @@
 
 #include "centro.h"
 
+
+void die(char *message) {
+     perror(message);
+       exit(1);
+}
+
+void copyData(int from, int to) {
+   char buf[1024];
+   int amount;
+
+   while ((amount = read(from, buf, sizeof(buf))) > 0){
+      if (write(to, buf, amount) != amount) {
+         die("write");
+         return;
+      }
+   }
+   if (amount < 0) die("read");
+}
+
+
 /* verificacionNombreCentro
  * Descripción: Procedimiento encargado de la verificación del valor del 
  * modificador -n.
@@ -167,7 +187,8 @@ void manejarParametros(int argc, char *argv[], Servidor* servidor){
  * status: entero que indica si el programa termina con éxito o no.
 */
 int usage (int status){                                                       
-   if (status != EXIT_SUCCESS){                                                 
+   if (status != EXIT_SUCCESS){                                                
+      printf("\n");
       printf ("Uso: %s -n nombreCentro -cp capacidadMaxima -i inventario -t tiempo -s suministro -p puerto\n", PROGRAM_NAME);           
       fputs ("Inicialización del programa servidor.\n\
       -n,   indica el nombre del centro de distribución (cadena de caracteres sin espacios)\n\
@@ -193,6 +214,7 @@ void inicializarServidor(Servidor* servidorPtr){
    servidorPtr->tiempo = -1;
    servidorPtr->suministro = -1;
    servidorPtr->puerto = -1;
+   servidorPtr->tiempoSimulacion = 0;
 }
 
 
@@ -214,11 +236,149 @@ void imprimirServidor(Servidor servidor){
    printf("\n");
 }
 
-int main(int argc, char *argv[]){
 
+/* manejarConexiones
+ * Descripción: Función que ejecuta el hilo encargado de manejar las 
+ * conexiones de los clientes.
+ * Parámetro de entrada:
+*/
+void * manejarConexiones(void * argumento){
+   Servidor * servidor = (Servidor *) (argumento);
+   printf("Comienzo a manejar las conexiones.\n");   
+   printf("El valor del puerto del servidor es %d.\n", servidor->puerto);   
+   
+   int descriptorSocket, descriptorSocketCliente;    //Se declaran los descriptores de archivo de los sockets
+   struct sockaddr_in direccionCliente, direccionServidor;  
+   int tamanioDireccionCliente;
+   
+   //Se crea el socket
+   descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
+   if( descriptorSocket < 0){
+      errorFatal("No fue posible crear el socket.");
+   }
+   
+   //Se asigna un puerto al socket
+   bzero(&direccionServidor, sizeof(direccionServidor));
+   direccionServidor.sin_family = AF_INET;
+   direccionServidor.sin_addr.s_addr = htonl(INADDR_ANY);
+   direccionServidor.sin_port = htons(servidor->puerto);
+   if (bind(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) != 0){
+      errorFatal("No se pudo hacer bind al socket.");
+   }
+   
+   //Se pone a escuchar al socket
+   if (listen(descriptorSocket, TAMANIO_COLA) < 0){
+      errorFatal("El socket no puede escuchar.");
+   }
+
+   while(servidor->tiempoSimulacion < TIEMPO_SIMULACION){ 
+      //Se aceptan las conexiones
+      tamanioDireccionCliente = sizeof(direccionCliente);
+      descriptorSocketCliente = accept(descriptorSocket, (struct sockaddr *) &direccionCliente, &tamanioDireccionCliente);
+      if (descriptorSocketCliente < 0) {
+         errorFatal("Falla en el accept.");         
+      }
+//      if(servidor->tiempoSimulacion < TIEMPO_SIMULACION){
+//         break;
+//      }
+      /*   printf("...getting data\n");
+         copyData(descriptorSocketCliente,1);
+         printf("...Done\n");
+         close(descriptorSocketCliente);
+         */
+      
+//      close(descriptorSocketCliente);
+   } 
+
+   close(descriptorSocketCliente);
+   
+   printf("Termino de manejar las conexiones.\n");
+   pthread_exit(&(servidor->puerto));
+}
+
+
+/* actualizarSimulación
+ * Descripción: Función que ejecuta el hilo encargado de controlar el tiempo 
+ * de ejecución del servidor y actualiza el valor del inventario de acuerdo al
+ * valor indicado para el modificador suministro (-s).
+ * Parámetro de entrada:
+*/
+void * actualizarSimulacion(void *argumento){
+   Servidor * servidor = (Servidor *) (argumento);
+   int descriptorSocket;
+   struct sockaddr_in direccionServidor;
+   char * ipServidor;
+   ipServidor = "127.0.0.1";
+
+
+   while(servidor->tiempoSimulacion < TIEMPO_SIMULACION){
+      printf("Minuto %d de la simulación. Inventario = %d\n", servidor->tiempoSimulacion, servidor->inventario);
+      usleep(50*1000);
+      if( servidor->capacidadMaxima >= (servidor->inventario + servidor->suministro)){
+         servidor->inventario = servidor->inventario + servidor->suministro;
+      }
+       servidor->tiempoSimulacion = servidor->tiempoSimulacion + 1;
+   }
+   printf("*** Fin de la simulación ***\n");
+
+   //Se conecta al puerto del servidor para desbloquear al hiloManejador
+   /* Get the address of the server. */
+   bzero(&direccionServidor, sizeof(direccionServidor));
+   direccionServidor.sin_family = AF_INET;
+   direccionServidor.sin_addr.s_addr = inet_addr(ipServidor);
+   direccionServidor.sin_port = htons(servidor->puerto);
+
+   /* Open a socket. */
+   descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
+   if (descriptorSocket < 0)
+      errorFatal("can't open socket");
+   /* Connect to the server. */
+   if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0)
+      errorFatal("can't connect to server");
+
+   /* Copy input to the server. */
+    close(descriptorSocket);
+
+   //Termina
+   pthread_exit(0);
+}
+
+
+
+int main(int argc, char *argv[]){
+   pthread_t hiloActualizador, hiloManejador;
+   int * retorna;
    Servidor servidor;
+   
    inicializarServidor(&servidor);
-//   imprimirServidor(servidor);
+// imprimirServidor(servidor);   HLM Este flag no es necesario...
    manejarParametros(argc, argv, &servidor);
-   imprimirServidor(servidor);
+   imprimirServidor(servidor); //HLM Este flag no es necesario...
+        
+   //Crea el hilo que se encargara de manejar la conexiones de los clientes.
+   if (pthread_create(&hiloManejador,NULL,manejarConexiones,(void *)&servidor) != 0) {
+      fprintf(stderr,"No se pudo crear el thread hilo:%s\n",strerror(errno));
+   }
+  
+   //Crea el hilo que se encargara de acutalizar los valores de la simulación.
+   if (pthread_create(&hiloActualizador,NULL,actualizarSimulacion,(void *)&servidor) != 0) {
+      fprintf(stderr,"No se pudo crear el thread hilo:%s\n",strerror(errno));
+   }
+
+  
+   //Espera a que el hilo que actualiza los valores de la simulación termine.
+   if (pthread_join(hiloActualizador,NULL) != 0 ){
+      fprintf(stderr,"Hubo un problema con la terminación del hilo Junior: %s\n",strerror(errno));
+   }
+
+   //Espera a que el hilo que maneja las conexiones de los clientes termine.
+   if (pthread_join(hiloManejador,(void**)&retorna) != 0 ){
+      fprintf(stderr,"Hubo un problema con la terminación del hilo Junior: %s\n",strerror(errno));
+   }
+   printf("El hilo manejador retorna %d\n", *retorna);
+   
+   printf("La simulación ha terminado con éxito.\n"); //HLM Este flag no es necesario...
+   imprimirServidor(servidor); //HLM Este flag no es necesario...
+
+   return 0;
 }

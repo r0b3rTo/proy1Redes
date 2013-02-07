@@ -2,6 +2,7 @@
 #   Definicion de Macros
 CC=gcc
 CFLAGS = -g
+TFLAG = -pthread
 #LIBS = -lsocket -lnsl
 
 FUENTES= ListaServidor.o errors.o bomba.o centro.o bomba centro
@@ -9,13 +10,13 @@ FUENTES= ListaServidor.o errors.o bomba.o centro.o bomba centro
 all : bomba centro
 
 centro: centro.o errors.o ListaServidor.o
-	$(CC) centro.o errors.o ListaServidor.o -o centro
+	$(CC) -pthread centro.o errors.o ListaServidor.o -o centro
 
 bomba: bomba.o errors.o ListaServidor.o
 	$(CC) bomba.o errors.o ListaServidor.o -o bomba
 
 centro.o: centro.c centro.h ListaServidor.h errors.h
-	$(CC) -c centro.c
+	$(CC) -c centro.c 
 
 bomba.o: bomba.c bomba.h ListaServidor.h errors.h
 	$(CC) -c bomba.c
