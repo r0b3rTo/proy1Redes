@@ -28,4 +28,5 @@ extern ListaServidor insertarServidor(ListaServidor, char*, char*,int,int);
 extern ListaServidor insertarTiempoRespuesta(ListaServidor,char*,int);
 extern ListaServidor buscarServidor(ListaServidor,char*);
 extern void ordenarLista(ListaServidor*);
+extern int length(ListaServidor);
 extern void imprimirServidores(ListaServidor);

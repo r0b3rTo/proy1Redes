@@ -150,6 +150,22 @@ void ordenarLista(ListaServidor *listaServidores){
     }
 }
 
+/* Funcion length
+*    Parametros de entrada: Una estructura de tipo ListaServidor que contiene elementos
+*    Parametro de salida: ninguno.
+*    Recibe la cabeza de la lista y calcula la cantidad de elementos que la lista posee.
+ */
+int length(ListaServidor listaServidores){
+   
+   int longitud = 0;
+   while(listaServidores != NULL){
+      longitud= longitud + 1;
+      listaServidores = listaServidores->siguiente;
+   }
+   return longitud;
+}
+
+
 
 /*   
 * Funcion imprimirServidores

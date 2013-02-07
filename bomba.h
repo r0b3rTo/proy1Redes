@@ -28,6 +28,7 @@
 
 //Definición de constantes
 #define PROGRAM_NAME "bomba"
+#define CARGA_GANDOLA 38000
 
 /*Tipo option 
  *Permite obtener las opciones de llamada del programa.

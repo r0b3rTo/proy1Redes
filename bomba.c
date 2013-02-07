@@ -18,7 +18,7 @@
 *    Descripción: Toma el apuntador a un file, y lo recorre insertando todos
 *    los centros del archivo en la lista.
 */
-ListaServidor obtenerCentros(ListaServidor listaServidores, FILE *archivoServidores){
+ListaServidor obtenerCentros(ListaServidor listaCentros, FILE *archivoServidores){
   char servidorInfo [100];
   char* nombreServidor;
   char* direccionServidor;
@@ -35,9 +35,9 @@ ListaServidor obtenerCentros(ListaServidor listaServidores, FILE *archivoServido
       nombreServidor = strtok(servidorInfo,"&");
       direccionServidor = strtok(NULL,"&");
       puertoServidor = atoi(strtok(NULL,"&\n"));
-      listaServidores = insertarServidor(listaServidores,nombreServidor,direccionServidor,puertoServidor,0);
+      listaCentros = insertarServidor(listaCentros,nombreServidor,direccionServidor,puertoServidor,0);
   }
-  return listaServidores;
+  return listaCentros;
 }
 
 /* verificacionNombreBomba
@@ -196,7 +196,7 @@ void manejarParametros(int argc, char *argv[], Bomba* bomba){
             verificacionNombreBomba(&bomba->nombreBomba, &flagN);
             break;
          case 'm':
-            verificacionEntero(opt, 38000, 3800000, &bomba->capacidadMaxima, &flagCP);
+            verificacionEntero(opt, CARGA_GANDOLA, 3800000, &bomba->capacidadMaxima, &flagCP);
             break;
          case 'i':
             verificacionEntero(opt, 0, bomba->capacidadMaxima, &bomba->inventario, &flagI);
@@ -242,10 +242,142 @@ void inicializarBomba(Bomba* bomba){
    bomba->ficheroCentros = "";
 }
 
+/* consumirGasolina
+ * Descripción: Procedimiento que simula el consumo de gasolina, restándole la tasa
+ * al inventario de la Bomba.
+ * Parámetro de entrada: 
+ * bomba: apuntador a la estructura Bomba.
+*/
+void consumirGasolina(Bomba* bomba){
+   
+   if(bomba->inventario < 5*bomba->consumo){
+      bomba->inventario = 0;
+   }else{
+      bomba->inventario = bomba->inventario - 5*bomba->consumo;
+   }
+}
+
+/* recibirGasolina
+ * Descripción: Procedimiento que simula el ingreso de la carga de gasolina.
+ * Parámetro de entrada: 
+ * bomba: apuntador a la estructura Bomba.
+ * 
+*/
+void recibirGasolina(Bomba* bomba, int nuevaCarga){
+   
+   bomba->inventario = bomba->inventario + nuevaCarga;
+   
+}
+
+/* predecirLlamadoCentro
+ * Descripción:.
+ * Parámetro de entrada: 
+ * bomba: apuntador a la estructura Bomba.
+ * minutoActual: entero que representa el minuto actual de la simulación.
+ * tiempoMinimoRespuesta: entero que representa el tiempo de respuesta mínimo
+ * de la lista de Centros.
+*/
+int predecirLlamadoCentro(Bomba bomba, int minutoActual, int tiempoMinimoRespuesta){
+   int t = minutoActual;
+   if(bomba.capacidadMaxima - bomba.inventario < CARGA_GANDOLA){
+      t = ((CARGA_GANDOLA - (bomba.capacidadMaxima - bomba.inventario)) / bomba.consumo);
+      if(t - tiempoMinimoRespuesta >= 0){
+         t = t -tiempoMinimoRespuesta;
+      }else{
+         t = minutoActual;
+      }
+   }
+   return t;
+}
+
+/* obtenerTiemposRespuesta
+ * Descripción:.
+ * Parámetro de entrada: 
+ * listaCentros: apuntador a la estructura de tipo ListaServidor que contiene
+ * los datos de los distintos centros de distribución.
+*/
+void obtenerTiemposRespuesta(ListaServidor listaCentros){
+   
+   int descriptorSocket;
+   struct sockaddr_in direccionServidor;
+   
+   char* mensajeSolicitud = "Solicitud de Tiempo Respuesta";
+   char tiempoRespuesta[100];
+   int tiempoLeido;
+   
+   /* Abrir un socket */
+   descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
+   if (descriptorSocket < 0){
+      errorFatal("No es posible abrir el socket");
+   }
+   
+   while(listaCentros != NULL){
+      /* Obtener la dirección del Centro */
+      bzero(&direccionServidor, sizeof(direccionServidor));
+      direccionServidor.sin_family = AF_INET;
+      direccionServidor.sin_addr.s_addr = inet_addr(INADDR_ANY);
+      direccionServidor.sin_port = htons(listaCentros->puerto);
+      
+      /* Conexión al Centro correspondiente */
+      if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
+         errorFatal("Error: No es posible conectarse con el servidor\n");
+      }
+      
+      /* Enviar solicitud de Tiempo de Respuesta*/
+      if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)) == 0){
+         errorFatal("Error: No es posible escribir en el socket\n");
+      }
+
+      /* Leer el Tiempo enviado por el Centro correspondiente*/
+      if (recv(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta),0) == 1){
+         errorFatal("Error: No es posible recibir información del socket\n");
+      }
+      
+      tiempoLeido = atoi(tiempoRespuesta);
+      listaCentros->tiempoRespuesta = tiempoLeido;
+      listaCentros = listaCentros->siguiente;
+   }
+   /* Cerrar el socket*/
+   close(descriptorSocket);
+}
+
+/* solicitarEnvioGasolina
+ * Descripción:.
+ * Parámetro de entrada: 
+ * listaCentros: apuntador a la estructura de tipo ListaServidor que contiene
+ * los datos de los distintos centros de distribución.
+ * descriptorSocket: identificador del socket perteneciente a la Bomba.
+*/
+void solicitarEnvioGasolina(ListaServidor listaCentros, int descriptorSocket){
+   
+   int solicitudAceptada = 0;
+   ListaServidor copiaListaCentros;
+   copiaListaCentros=(SERVIDOR*)malloc(sizeof(SERVIDOR));
+   if(copiaListaCentros == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
+   copiaListaCentros = listaCentros;
+   
+   while(!solicitudAceptada){
+      
+      copiaListaCentros = listaCentros;
+      while(copiaListaCentros != NULL){
+         
+         copiaListaCentros = copiaListaCentros->siguiente;
+      }
+      
+   }
+}
+
 int main(int argc, char *argv[]){
+   
    Bomba bomba;
+   int minuto = 0, minutoSolicitudGasolina;
    FILE *archivoCentros;
-   ListaServidor listaServidores = NULL;
+   ListaServidor listaCentros = NULL;
+   int numeroCentros = 0;
+   int tiempoMinimoRespuesta = 0;
+   
    int descriptorSocket, numeroPuerto;
    struct sockaddr_in direccionServidor;
    
@@ -254,17 +386,37 @@ int main(int argc, char *argv[]){
    
    archivoCentros = fopen(bomba.ficheroCentros,"r");
    if(archivoCentros == NULL){
-      errorFatal("Error: No se puede accesar al archivo de usuarios");
+      errorFatal("Error: No se puede accesar al archivo de usuarios\n");
    }
-   listaServidores = (SERVIDOR*)malloc(sizeof(SERVIDOR));
-   listaServidores = obtenerCentros(listaServidores, archivoCentros);
+   listaCentros = (SERVIDOR*)malloc(sizeof(SERVIDOR));
+   listaCentros = obtenerCentros(listaCentros, archivoCentros);
    fclose(archivoCentros);
-   imprimirServidores(listaServidores);
+//    imprimirServidores(listaCentros);
    
+   obtenerTiemposRespuesta(listaCentros);
+   ordenarLista(&listaCentros);
+//    imprimirServidores(listaCentros);
+   tiempoMinimoRespuesta = listaCentros->tiempoRespuesta;
+   
+   //Creación de socket de la Bomba
    descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
    if (descriptorSocket < 0){
-      errorFatal("Error: No se pudo crear el socket");
+      errorFatal("Error: No se pudo crear el socket\n");
    }
+   
+   while(minuto < 480){
+      printf("Minuto %d de la simulación. Inventario = %d\n", minuto, bomba.inventario);
+      minutoSolicitudGasolina = predecirLlamadoCentro(bomba, minuto, tiempoMinimoRespuesta);
+      printf("Minuto de Solicitud a Centros: %d\n", minutoSolicitudGasolina);
+      if(minutoSolicitudGasolina <= minuto){
+         solicitarEnvioGasolina(listaCentros, descriptorSocket);
+      }
+      usleep(5*100000);
+      consumirGasolina(&bomba);
+      minuto = minuto + 5;
+   }
+   
    close(descriptorSocket);
+   printf("*** Fin de la simulación ***\n");
    exit(EXIT_SUCCESS);   
 }
