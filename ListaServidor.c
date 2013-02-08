@@ -77,10 +77,10 @@ ListaServidor insertarTiempoRespuesta(ListaServidor listaServidores, char* nombr
     }
     if (listaServidores != NULL){ 
         listaServidores->tiempoRespuesta = tiempoRespuesta;
-    }
-    if(listaServidores == NULL){ 
+    }else{
         printf("El nombre del Centro de Distribución NO se encuentra en la lista de Centros válidos.\n");
     }
+    
     return copiaListaServidores;
 }
 

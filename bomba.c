@@ -426,7 +426,7 @@ int main(int argc, char *argv[]){
    
    Bomba bomba;
    int minuto = 0, minutoSolicitudGasolina;
-   FILE *archivoCentros;
+   FILE *archivoCentros, *archivoLog;
    ListaServidor listaCentros = NULL;
    int numeroCentros = 0;
    int tiempoMinimoRespuesta = 0;
@@ -441,6 +441,18 @@ int main(int argc, char *argv[]){
    if(archivoCentros == NULL){
       errorFatal("Error: No se puede accesar al archivo de usuarios\n");
    }
+   
+   char* nombreArchivo = (char*)malloc(sizeof(char)*100);
+   if(nombreArchivo == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
+   strcpy(nombreArchivo,"log_");
+   strcat(nombreArchivo,bomba.nombreBomba); 
+   strcat(nombreArchivo,".txt");
+   printf("Nombre de archivo log: %s\n", nombreArchivo);
+   archivoLog = fopen(nombreArchivo,"w+");
+   fclose(archivoLog);
+   
    listaCentros = (SERVIDOR*)malloc(sizeof(SERVIDOR));
    if(listaCentros == NULL){
       terminar("Error de asignacion de memoria: " );
