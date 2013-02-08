@@ -302,13 +302,13 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
    struct sockaddr_in direccionServidor;
    
    char* mensajeSolicitud = "Solicitud de Tiempo Respuesta";
-   char tiempoRespuesta[100];
+   char tiempoRespuesta[100] = "";
    int tiempoLeido;
    
    /* Abrir un socket */
    descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
    if (descriptorSocket < 0){
-      errorFatal("No es posible abrir el socket");
+      errorFatal("Error: No es posible abrir el socket");
    }
    
    while(listaCentros != NULL){
@@ -320,21 +320,23 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
       
       /* Conexión al Centro correspondiente */
       if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
-         errorFatal("Error: No es posible conectarse con el servidor\n");
-      }
-      
-      /* Enviar solicitud de Tiempo de Respuesta*/
-      if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)) == 0){
-         errorFatal("Error: No es posible escribir en el socket\n");
-      }
+         mensajeError("Error: No es posible conectarse con el centro\n");
+      }else{
+         /* Enviar solicitud de Tiempo de Respuesta*/
+         if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)) == 0){
+            mensajeError("Error: No es posible escribir en el socket\n");
+         }
 
-      /* Leer el Tiempo enviado por el Centro correspondiente*/
-      if (recv(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta),0) == 1){
-         errorFatal("Error: No es posible recibir información del socket\n");
+         /* Leer el Tiempo enviado por el Centro correspondiente*/
+         if (recv(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta),0) == 1){
+            mensajeError("Error: No es posible recibir información del socket\n");
+         }
       }
       
-      tiempoLeido = atoi(tiempoRespuesta);
-      listaCentros->tiempoRespuesta = tiempoLeido;
+      if(strcmp(tiempoRespuesta,"") != 0){
+         tiempoLeido = atoi(tiempoRespuesta);
+         listaCentros->tiempoRespuesta = tiempoLeido;
+      }
       listaCentros = listaCentros->siguiente;
    }
    /* Cerrar el socket*/
@@ -346,27 +348,67 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
  * Parámetro de entrada: 
  * listaCentros: apuntador a la estructura de tipo ListaServidor que contiene
  * los datos de los distintos centros de distribución.
+ * bomba: apuntador a la estructura Bomba.
  * descriptorSocket: identificador del socket perteneciente a la Bomba.
 */
-void solicitarEnvioGasolina(ListaServidor listaCentros, int descriptorSocket){
+void solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoActual, int descriptorSocket){
    
    int solicitudAceptada = 0;
+   struct sockaddr_in direccionServidor;
+   
+   char* mensajeSolicitud = "Solicitud de Gasolina";
+   char respuestaSolicitud[100];
+   int tiempoEsperaCarga, tiempoEsperaExtra;
+   
    ListaServidor copiaListaCentros;
    copiaListaCentros=(SERVIDOR*)malloc(sizeof(SERVIDOR));
    if(copiaListaCentros == NULL){
       terminar("Error de asignacion de memoria: " );
    }
    copiaListaCentros = listaCentros;
-   
-   while(!solicitudAceptada){
       
-      copiaListaCentros = listaCentros;
-      while(copiaListaCentros != NULL){
-         
-         copiaListaCentros = copiaListaCentros->siguiente;
+   while(copiaListaCentros != NULL){
+      /* Obtener la dirección del Centro */
+      bzero(&direccionServidor, sizeof(direccionServidor));
+      direccionServidor.sin_family = AF_INET;
+      direccionServidor.sin_addr.s_addr = inet_addr(INADDR_ANY);
+      direccionServidor.sin_port = htons(copiaListaCentros->puerto);
+      
+      /* Conexión al Centro correspondiente */
+      if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
+         mensajeError("Error: No es posible conectarse con el centro\n");
+      } else {
+         /* Enviar solicitud de Tiempo de Respuesta*/
+         if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)) == 0){
+            mensajeError("Error: No es posible escribir en el socket\n");
+         }
+        
+         /* Leer el Tiempo enviado por el Centro correspondiente*/
+         if (recv(descriptorSocket, &respuestaSolicitud, sizeof(respuestaSolicitud),0) == 1){
+            mensajeError("Error: No es posible recibir información del socket\n");
+         }
       }
-      
+         
+      if(strcmp(respuestaSolicitud,"Ok") == 0){
+         printf("Solicitud de Gasolina aceptada por Centro %s\n", copiaListaCentros->nombre);
+         solicitudAceptada = 1;
+         tiempoEsperaCarga = copiaListaCentros->tiempoRespuesta;
+         break;
+      }
+         
+      copiaListaCentros = copiaListaCentros->siguiente;
    }
+   
+   //Al haber una solicitud aceptada, se espera y se recibe la carga.
+   if(solicitudAceptada){
+      if(tiempoEsperaCarga > 5){
+         tiempoEsperaExtra = tiempoEsperaCarga - 5; 
+         usleep(tiempoEsperaExtra*100000);
+         minutoActual = minutoActual + tiempoEsperaExtra; 
+      }
+      recibirGasolina(&bomba,CARGA_GANDOLA);
+   }
+   
 }
 
 int main(int argc, char *argv[]){
@@ -409,7 +451,7 @@ int main(int argc, char *argv[]){
       minutoSolicitudGasolina = predecirLlamadoCentro(bomba, minuto, tiempoMinimoRespuesta);
       printf("Minuto de Solicitud a Centros: %d\n", minutoSolicitudGasolina);
       if(minutoSolicitudGasolina <= minuto){
-         solicitarEnvioGasolina(listaCentros, descriptorSocket);
+         solicitarEnvioGasolina(listaCentros, bomba, minuto, descriptorSocket);
       }
       usleep(5*100000);
       consumirGasolina(&bomba);
