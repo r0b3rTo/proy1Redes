@@ -302,45 +302,57 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
    struct sockaddr_in direccionServidor;
    
    char* mensajeSolicitud = "Solicitud de Tiempo Respuesta";
-   char tiempoRespuesta[100] = "";
+   char tiempoRespuesta[100];
    int tiempoLeido;
    
-   /* Abrir un socket */
-   descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
-   if (descriptorSocket < 0){
-      errorFatal("Error: No es posible abrir el socket");
+   ListaServidor indiceLista = (SERVIDOR*)malloc(sizeof(SERVIDOR)); 
+   if(indiceLista == NULL){
+      terminar("Error de asignacion de memoria: " );
    }
+   indiceLista = listaCentros;
    
-   while(listaCentros != NULL){
+   while(indiceLista != NULL){
       /* Obtener la dirección del Centro */
       bzero(&direccionServidor, sizeof(direccionServidor));
       direccionServidor.sin_family = AF_INET;
-      direccionServidor.sin_addr.s_addr = inet_addr(INADDR_ANY);
-      direccionServidor.sin_port = htons(listaCentros->puerto);
+      direccionServidor.sin_addr.s_addr = inet_addr(indiceLista->direccion);
+      direccionServidor.sin_port = htons(indiceLista->puerto);
+      printf("Direccion del Centro %s obtenida\n",indiceLista->nombre);
+      
+      /* Abrir un socket */
+      descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
+      if (descriptorSocket < 0){
+         errorFatal("Error: No es posible abrir el socket");
+      }
+      printf("Socket para tiempos de respuesta de Centro %s abierto\n", indiceLista->nombre);
       
       /* Conexión al Centro correspondiente */
       if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
          mensajeError("Error: No es posible conectarse con el centro\n");
       }else{
          /* Enviar solicitud de Tiempo de Respuesta*/
-         if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)) == 0){
+         if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)*100) == 0){
             mensajeError("Error: No es posible escribir en el socket\n");
          }
 
          /* Leer el Tiempo enviado por el Centro correspondiente*/
-         if (recv(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta),0) == 1){
+         if (recv(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta)*100,0) == 1){
             mensajeError("Error: No es posible recibir información del socket\n");
          }
       }
-      
+      printf("Tiempo de Respuesta obtenido: %s\n", tiempoRespuesta);
       if(strcmp(tiempoRespuesta,"") != 0){
          tiempoLeido = atoi(tiempoRespuesta);
-         listaCentros->tiempoRespuesta = tiempoLeido;
+         indiceLista->tiempoRespuesta = tiempoLeido;
       }
-      listaCentros = listaCentros->siguiente;
+      
+      /* Cerrar el socket*/
+      close(descriptorSocket);
+      
+      indiceLista = indiceLista->siguiente;
    }
-   /* Cerrar el socket*/
-   close(descriptorSocket);
+   
+   printf("obtenerTiemposRespuesta finalizado\n");
 }
 
 /* solicitarEnvioGasolina
@@ -360,8 +372,7 @@ void solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoA
    char respuestaSolicitud[100];
    int tiempoEsperaCarga, tiempoEsperaExtra;
    
-   ListaServidor copiaListaCentros;
-   copiaListaCentros=(SERVIDOR*)malloc(sizeof(SERVIDOR));
+   ListaServidor copiaListaCentros = (SERVIDOR*)malloc(sizeof(SERVIDOR));
    if(copiaListaCentros == NULL){
       terminar("Error de asignacion de memoria: " );
    }
@@ -431,13 +442,20 @@ int main(int argc, char *argv[]){
       errorFatal("Error: No se puede accesar al archivo de usuarios\n");
    }
    listaCentros = (SERVIDOR*)malloc(sizeof(SERVIDOR));
+   if(listaCentros == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
    listaCentros = obtenerCentros(listaCentros, archivoCentros);
    fclose(archivoCentros);
-//    imprimirServidores(listaCentros);
+   imprimirServidores(listaCentros);
+   printf("Centros obtenidos desde el archivo\n");
    
    obtenerTiemposRespuesta(listaCentros);
+   printf("Tiempos de Respuesta obtenidos\n");
+   
    ordenarLista(&listaCentros);
-//    imprimirServidores(listaCentros);
+   printf("Lista de Centros ordenada\n");
+   imprimirServidores(listaCentros);
    tiempoMinimoRespuesta = listaCentros->tiempoRespuesta;
    
    //Creación de socket de la Bomba

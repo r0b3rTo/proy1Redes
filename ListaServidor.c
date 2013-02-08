@@ -27,7 +27,7 @@
 */
 ListaServidor insertarServidor(ListaServidor listaServidores, char* nombre, char* direccion, int puerto, int tiempoRespuesta)
 { 
-     ListaServidor nuevoServidor;
+     ListaServidor nuevoServidor = NULL;
      char* auxnombre = (char*)malloc(sizeof(char)*100);
      if(auxnombre == NULL){
           terminar("Error de asignacion de memoria: " );
@@ -72,7 +72,7 @@ ListaServidor insertarTiempoRespuesta(ListaServidor listaServidores, char* nombr
          terminar("Error de asignacion de memoria: " );
     }
     copiaListaServidores = listaServidores;
-    while(listaServidores!=NULL && strcmp(listaServidores->nombre,nombre)!=0){
+    while(listaServidores != NULL && strcmp(listaServidores->nombre,nombre) != 0){
         listaServidores=listaServidores->siguiente;
     }
     if (listaServidores != NULL){ 
@@ -100,7 +100,7 @@ ListaServidor buscarServidor(ListaServidor listaServidores, char* nombre){
       if (strcmp(listaServidores->nombre,nombre) != 0){
           listaServidores = listaServidores->siguiente;
       } else {
-          servidorBuscado =(SERVIDOR*)malloc(sizeof(SERVIDOR));
+          servidorBuscado = (SERVIDOR*)malloc(sizeof(SERVIDOR));
           if(servidorBuscado == NULL){
                terminar("Error de asignacion de memoria: " );
           }
@@ -118,8 +118,7 @@ ListaServidor buscarServidor(ListaServidor listaServidores, char* nombre){
  * Funcion ordenarLista
  */
 void ordenarLista(ListaServidor *listaServidores){
-    ListaServidor copiaListaServidores;
-    copiaListaServidores=(SERVIDOR*)malloc(sizeof(SERVIDOR));
+    ListaServidor copiaListaServidores = (SERVIDOR*)malloc(sizeof(SERVIDOR));
     if(copiaListaServidores == NULL){
          terminar("Error de asignacion de memoria: " );
     }
