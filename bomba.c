@@ -336,6 +336,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
          }
 
          /* Leer el Tiempo enviado por el Centro correspondiente*/
+         bzero(tiempoRespuesta,100);
          if (recv(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta)*100,0) == 1){
             mensajeError("Error: No es posible recibir información del socket\n");
          }
@@ -422,6 +423,65 @@ void solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoA
    
 }
 
+void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual, int inventario,
+   char* nombreCentro, char* resultadoPeticion){
+   
+   FILE *archivoLog;
+   archivoLog = fopen(nombreArchivoLog,"a");
+   if(archivoLog == NULL){
+      mensajeError("Error: No se puede accesar al archivo del log de la Bomba\n");
+   }
+   
+   char* nuevaEntrada = (char*)malloc(sizeof(char)*256);
+   if(nuevaEntrada == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
+   
+   char bufferTiempo[100];
+   char bufferInventario[100];   
+   
+   strcpy(nuevaEntrada, mensaje);
+   strcat(nuevaEntrada, ": ");
+   if(strcmp(mensaje,"Estado Inicial") == 0){
+      sprintf(bufferInventario,"%d", inventario);
+      strcat(nuevaEntrada, bufferInventario);
+      strcat(nuevaEntrada, " litros");
+   }else if(strcmp(mensaje, "Tanque full") == 0){
+      strcat(nuevaEntrada, "Minuto ");
+      sprintf(bufferTiempo,"%d",tiempoActual);
+      strcat(nuevaEntrada, bufferTiempo);
+   }else if(strcmp(mensaje, "Tanque vacio") == 0){
+      strcat(nuevaEntrada, "Minuto ");
+      sprintf(bufferTiempo,"%d",tiempoActual);
+      strcat(nuevaEntrada, bufferTiempo);
+   }else if(strcmp(mensaje, "Peticion") == 0){
+      strcat(nuevaEntrada, "Minuto ");
+      sprintf(bufferTiempo,"%d",tiempoActual);
+      strcat(nuevaEntrada, bufferTiempo);
+      strcat(nuevaEntrada, ", ");
+      strcat(nuevaEntrada, nombreCentro);
+      strcat(nuevaEntrada, ", ");
+      strcat(nuevaEntrada, resultadoPeticion);
+   }else{
+      strcat(nuevaEntrada, "Minuto ");
+      sprintf(bufferTiempo,"%d",tiempoActual);
+      strcat(nuevaEntrada, bufferTiempo);
+      strcat(nuevaEntrada, ", ");
+      sprintf(bufferInventario,"%d", inventario);
+      strcat(nuevaEntrada, bufferInventario);
+      strcat(nuevaEntrada, " litros");
+   }
+   strcat(nuevaEntrada,"\n");
+   
+   printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada);
+   
+   if(fwrite(nuevaEntrada, sizeof(char), strlen(nuevaEntrada), archivoLog) < strlen(nuevaEntrada)){
+      mensajeError("Error: No se pudo escribir correctamente en el archivo log de la Bomba\n");
+   }
+   
+   fclose(archivoLog);
+}
+
 int main(int argc, char *argv[]){
    
    Bomba bomba;
@@ -439,8 +499,17 @@ int main(int argc, char *argv[]){
    
    archivoCentros = fopen(bomba.ficheroCentros,"r");
    if(archivoCentros == NULL){
-      errorFatal("Error: No se puede accesar al archivo de usuarios\n");
+      errorFatal("Error: No se puede accesar al archivo de Centros\n");
    }
+   
+   listaCentros = (SERVIDOR*)malloc(sizeof(SERVIDOR));
+   if(listaCentros == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
+   listaCentros = obtenerCentros(listaCentros, archivoCentros);
+   fclose(archivoCentros);
+   imprimirServidores(listaCentros);
+   printf("Centros obtenidos desde el archivo\n");
    
    char* nombreArchivo = (char*)malloc(sizeof(char)*100);
    if(nombreArchivo == NULL){
@@ -451,16 +520,9 @@ int main(int argc, char *argv[]){
    strcat(nombreArchivo,".txt");
    printf("Nombre de archivo log: %s\n", nombreArchivo);
    archivoLog = fopen(nombreArchivo,"w+");
-   fclose(archivoLog);
+   escribirArchivoLog(nombreArchivo,"Estado Inicial", 0, bomba.inventario, "", "");
    
-   listaCentros = (SERVIDOR*)malloc(sizeof(SERVIDOR));
-   if(listaCentros == NULL){
-      terminar("Error de asignacion de memoria: " );
-   }
-   listaCentros = obtenerCentros(listaCentros, archivoCentros);
-   fclose(archivoCentros);
-   imprimirServidores(listaCentros);
-   printf("Centros obtenidos desde el archivo\n");
+   fclose(archivoLog);
    
    obtenerTiemposRespuesta(listaCentros);
    printf("Tiempos de Respuesta obtenidos\n");
