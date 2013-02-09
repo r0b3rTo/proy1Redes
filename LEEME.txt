@@ -1,5 +1,97 @@
-LEEME.txt
+Archivo LEEME
 
-Los modificadores del programa centro.c tienen la siguiente restricción: Se debe indicar el modificador -cp con su valor correspondiente antes del modificador
--i y su valor de inicialización. Sin embargo, en caso de que dicha restricción no se cumpla, el programa le indicará a través de un mensaje al usuario la 
-manera correcta de su invocación.
+*Integrantes:
+Héctor López 05-38421
+Roberto Omaña 06-39990
+
+*Archivos que componen el Proyecto 1
+- bomba.c
+   Código del programa Cliente.
+- bomba.h
+   Includes y definición de estructuras para el programa bomba.
+- centro.c
+   Código del programa Servidor
+- centro.h
+   Includes y definición de estructuras para el programa centro.
+- ListaServidor.c
+   Contiene funciones para el manejo de una lista enlazada de
+   Servidores, con su nombre, direccion, puerto y tiempo de respuesta.
+- ListaServidor.h
+   Contiene la definición de la estructura de ListaServidor, y cada uno de sus elementos.
+- errors.c
+   Contiene funciones para el manejo de errores de los programas bomba y centro.
+- errors.h
+   Contiene la definición de los diferentes elementos para el manejo de errores de los programas
+   bomba y centro.
+- makefile
+   Contiene los distintos elementos necesarios para gestionar la compilación de los archivos.
+
+
+*Qué hace el programa
+Para mejorar el sistema de distribución de gasolina PDVSA ha pedido a los estudiantes de
+Redes de Computación que implementen un prototipo en lenguaje C y usando sockets.
+El prototipo del sistema tendrá bombas de gasolina(programa bomba) y centros de distribución 
+de combustible(programa centro). Las bombas pedirán a los centros de distribución gandolas de 
+combustible para reponer sus inventarios.
+
+
+*Cómo se ejecuta
+- Programa bomba
+Uso: ./bomba -n nombreBomba -cp capacidadMaxima -i inventario -c consumo -fc ficheroCentros           
+Inicialización del programa bomba
+   -n,   indica el nombre de la bomba (cadena de caracteres sin espacios)
+   -cp,  capacidad máxima en litros (entero entre 38000 y 380000)
+   -i,   inventario actual (entero entre 0 y capacidad máxima)
+   -c,   consumo promedio en litros por minuto (entero entre 0 y 1000)
+   -fc,  nombre del archivo que contiene los datos de los centros de distribución
+
+NOTA: el orden en los parámetros no es restrictivo.
+
+- Programa centro
+Uso: ./centro -n nombreCentro -cp capacidadMaxima -i inventario -t tiempo -s suministro -p puerto        
+Inicialización del programa centro
+   -n,   indica el nombre del centro de distribución (cadena de caracteres sin espacios)
+   -cp,  capacidad máxima en litros (entero entre 38000 y 3800000)
+   -i,   inventario actual (entero entre 0 y capacidad máxima)
+   -t,   tiempo de respuesta en minutos (entero entre 0 y 180)
+   -s,   suministro promedio en litros por minuto (entero entre 0 y 10000)
+   -p,   puerto por el cual escuchará peticiones  (entero entre 1 y 65535)
+
+NOTA: el orden en los parámetros no es restrictivo.
+
+*Resumen de la estructura
+- Cliente
+   *bomba.c
+      Soportado por:
+         bomba.h
+         ListaServidor.h
+         errors.h
+
+- Servidor
+   *centro.c
+      Soportado por:
+         centro.c
+         centro.h
+         errors.h
+
+- Estructura auxiliar
+   *ListaServidor.c
+      Soportada por:
+         ListaServidor.h
+         errors.h
+
+*Tipo de aplicación
+Es de tipo distribuida debido a que posee distintos componentes que se ejecutan en entornos 
+separados, normalmente en diferentes plataformas conectadas a través de una red. Un ejemplo 
+de una aplicación distribuida es justamente una con la estructura cliente-servidor.
+
+*Condiciones particulares
+- La invocación de los programas bomba y centro tienen la siguiente restricción: 
+Se debe indicar el modificador -cp con su valor correspondiente antes del modificador
+-i y su valor de inicialización. Sin embargo, en caso de que dicha restricción no se cumpla, 
+el programa le indicará a través de un mensaje al usuario la manera correcta de su invocación.
+
+Esto fue hecho con el fin de mejorar la eficiencia, ya que se verifica la veracidad del valor del
+modificador -i antes de guardarlo en las estructuras correspondientes.
+
+- La cola de los centros es de tamaño 5.
