@@ -443,10 +443,9 @@ void * manejarConexiones(void * argumento){
          fprintf(stderr,"No se pudo crear el thread hilo:%s\n",strerror(errno));
       }
    
-      //HLM 
       if (pthread_join(hiloTrabajador,NULL) != 0 ){
          fprintf(stderr,"Hubo un problema con la terminación del hilo Trabajador: %s\n",strerror(errno));
-      }//HLM 
+      } 
 
       close(descriptorSocketCliente);
    } 
@@ -456,25 +455,53 @@ void * manejarConexiones(void * argumento){
 }
 
 
-/* actualizarSimulación
- * Descripción: Función que ejecuta el hilo encargado de controlar el tiempo 
- * de ejecución del servidor y actualiza el valor del inventario de acuerdo al
- * valor indicado para el modificador suministro (-s).
- * Parámetro de entrada:
+/* conectarAlHiloManejador
+ * Descripción: Procedimiento que se conecta al hilo Manejador con la finalidad
+ * de que éste último ejecute la llamada bloqueante connect y termine su ejecución.
+ * Parámetro de entrada: 
+ * puerto: entero que indica el puerto por el cual escucha el servidor.
 */
-void * actualizarSimulacion(void *argumento){
-   Servidor * servidor = (Servidor *) (argumento);
+void conectarseAlHiloManejador(int puerto){
    int descriptorSocket;
    struct sockaddr_in direccionServidor;
    char * ipServidor;
    ipServidor = "127.0.0.1";
+
+   // Se inicializa la estructura con la dirección del servidor
+   bzero(&direccionServidor, sizeof(direccionServidor));
+   direccionServidor.sin_family = AF_INET;
+   direccionServidor.sin_addr.s_addr = inet_addr(ipServidor);
+   direccionServidor.sin_port = htons(puerto);
+   // Se crea el socket
+   descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
+   if (descriptorSocket < 0)
+      errorFatal("No fue posible crear el socket.\n");
+   // Se hace la conexión al socket
+   if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0)
+      errorFatal("No se pudo realizar la conexión al socket.\n");
+
+   // Se cierra el descriptor del socket.
+    close(descriptorSocket);
+}
+
+/* actualizarSimulación
+ * Descripción: Función que ejecuta el hilo encargado de controlar el tiempo 
+ * de ejecución del servidor y actualiza el valor del inventario de acuerdo al
+ * valor indicado para el modificador suministro (-s). Además, una vez terminado 
+ * el tiempo de la simulación, se conecta al hilo Manejador para que éste último
+ * ejecute el connect y pueda terminar su ejecución.
+ * Parámetro de entrada:
+ * argumento: apuntador sin tipo a la estructura de Servidor
+*/
+void * actualizarSimulacion(void *argumento){
+   Servidor * servidor = (Servidor *) (argumento);
    
    char * nombreArchivoLog = obtenerNombreArchivoLog(servidor->nombreCentro);
    escribirArchivoLog(nombreArchivoLog, "Estado Inicial", 0, servidor->inventario, servidor->nombreCentro, "");
 
    while(servidor->tiempoSimulacion < TIEMPO_SIMULACION){
       printf("Minuto %d de la simulación. Inventario = %d\n", servidor->tiempoSimulacion, servidor->inventario);
-      usleep(50*10000); //HLM hay que cambiar a 100*1000
+      usleep(100*1000); //HLM hay que cambiar a 100*1000
       pthread_mutex_lock(&mutex_inventario);
       if(servidor->inventario == 0){
          // Tanque vacío
@@ -489,39 +516,22 @@ void * actualizarSimulacion(void *argumento){
       pthread_mutex_unlock(&mutex_inventario);
       servidor->tiempoSimulacion = servidor->tiempoSimulacion + 1;
    }
-   printf("*** Fin de la simulación ***\n");
 
    // Se conecta al puerto del servidor para desbloquear al hiloManejador
-   // Se inicializa la estructura con la dirección del servidor
-   bzero(&direccionServidor, sizeof(direccionServidor));
-   direccionServidor.sin_family = AF_INET;
-   direccionServidor.sin_addr.s_addr = inet_addr(ipServidor);
-   direccionServidor.sin_port = htons(servidor->puerto);
-   // Se crea el socket
-   descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
-   if (descriptorSocket < 0)
-      errorFatal("No fue posible crear el socket.\n");
-   // Se hace la conexión al socket
-   if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0)
-      errorFatal("No se pudo realizar la conexión al socket.\n");
-
-   // Se cierra el descriptor del socket.
-    close(descriptorSocket);
+   conectarseAlHiloManejador(servidor->puerto);
 
    //Termina
    pthread_exit(0);
 }
 
 
-
+//Programa Principal
 int main(int argc, char *argv[]){
    Servidor servidor;
    pthread_t hiloActualizador, hiloManejador;
    
    inicializarServidor(&servidor);
-// imprimirServidor(servidor);   HLM Este flag no es necesario...
    manejarParametros(argc, argv, &servidor);
-//   imprimirServidor(servidor); //HLM Este flag no es necesario...
    crearLog(servidor.nombreCentro);
    pthread_mutex_init(&mutex_inventario, NULL);
    pthread_mutex_init(&mutex_tiempoRespuesta, NULL);
