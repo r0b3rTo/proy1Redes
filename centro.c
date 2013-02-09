@@ -27,6 +27,7 @@
 */
 void verificacionNombreCentro(char** nombreCentro, int *flagN){
    if( strcmp(optarg,"") == 0 ){
+      // Caso en que se indica como nombre la cadena de caracteres vacía.
       printf("Debe proveer un nombre de Centro de Distribución distinto de vacío para el modificador '-n'.\n");
    }else{
       *nombreCentro = optarg;
@@ -85,9 +86,12 @@ void verificacionEntero(int opt, int minimo, int maximo, int *variableServidor, 
 
 /* verificarParametrosFaltantes
  * Descripción: Procedimiento que verifica que todos los parámetros de 
- * invocación del programa se hayan inicializado de manera correcta.
+ * invocación del programa se hayan inicializado de manera correcta. En caso
+ * contrario, imprime por pantalla el error que fue detectado e invoca al
+ * procedimiento usage que imprime la manera correcta de invocar al programa.
  * Parámetros de entrada:
- * flagN
+ * flagN, flagC, flagI, flagT, flagS, flagP: valores enteros que indican si
+ * el modificador al que corresponden fue inicializado de manera correcta.
 */
 void verificarParametrosFaltantes(int flagN, int flagC, int flagI, int flagT, int flagS, int flagP){
    if(!flagN){
@@ -231,28 +235,28 @@ void imprimirServidor(Servidor servidor){
 
 
 /* obtenerNombreArchivoLog
- * Descripción:
+ * Descripción: Función que retorna el nombre del archivo bitácora de la
+ * ejecución del servidor, a partir del nombre del Centro de Distribución.
  * Parámetro de entrada:
- * servidor: apuntador a la estructura servidor de donde se obtendrá
- * el nombre del Centro de Distribución.
+ * nombreCentro: apuntador a una cadena de caracteres que representa el nombre 
+ * del Centro de Distribución.
 */
 char * obtenerNombreArchivoLog(char * nombreCentro){
-   FILE *archivoLog;
-
    char* nombreArchivo = (char*)malloc(sizeof(char)*100);
    if(nombreArchivo == NULL){
-      terminar("Error de asignacion de memoria: " );
+      terminar("Error de asignacion de memoria");
    }
    strcpy(nombreArchivo,"log_");
    strcat(nombreArchivo,nombreCentro); 
    strcat(nombreArchivo,".txt");
-   printf("Nombre de archivo log: %s\n", nombreArchivo); //HLM Flag innecesario...
    return nombreArchivo;
 }
 
 
 /* crearLog
- * Descripción:
+ * Descripción: Procedimiento que crea el archivo bitácora de ejecución del 
+ * servidor. En caso de que ya haya un archivo creado con el mismo nombre 
+ * correspondiente, lo sobreescribe.
  * Parámetro de entrada:
  * nombreServidor: Apuntador a la cadena de caracteres dentro de la estructura 
  * Servidor que guarda el nombre del Centro de Distribución.
@@ -269,8 +273,8 @@ void crearLog(char * nombreCentro){
 
 
 /* escribirArchivoLog
- * Descripción: Procedimiento que se encarga del archivo bitácora de 
- * ejecución del servidor.
+ * Descripción: Procedimiento que se encarga de actualizar el archivo bitácora 
+ * de la ejecución del servidor. 
  * Parámetros de entrada:
  * nombreArchivoLog: apuntador a una cadena de caracteres que representa el 
  * nombre del archivo bitácora de ejecución del servidor.
@@ -288,6 +292,8 @@ void crearLog(char * nombreCentro){
 */
 void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual, int inventario,
    char* nombreBomba, char* resultadoPeticion){
+   char bufferTiempo[100];
+   char bufferInventario[100];   
    
    FILE *archivoLog;
    archivoLog = fopen(nombreArchivoLog,"a");
@@ -299,9 +305,6 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
    if(nuevaEntrada == NULL){
       terminar("Error de asignacion de memoria: " );
    }
-   
-   char bufferTiempo[100];
-   char bufferInventario[100];   
    
    strcpy(nuevaEntrada, mensaje);
    strcat(nuevaEntrada, ": ");
@@ -330,11 +333,9 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
       strcat(nuevaEntrada, bufferInventario);
    }
    strcat(nuevaEntrada,"\n");
-   
-//   printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada); //HLM
-   
+      
    if(fwrite(nuevaEntrada, sizeof(char), strlen(nuevaEntrada), archivoLog) < strlen(nuevaEntrada)){
-      mensajeError("Error: No se pudo escribir correctamente en el archivo log de la Bomba\n");
+      mensajeError("Error: No se pudo escribir correctamente en el archivo bitácora del Centro de Distribución.\n");
    }   
    fclose(archivoLog);
 }
@@ -343,11 +344,12 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
  * Descripción: Función que ejecuta el hilo encargado de atender una solicitud
  * de un cliente conectado.
  * Parámetros de entrada:
+ * argumento: apuntador a una estructura Parametros que contiene a su vez un 
+ * apuntador a la estructura Servidor y un apuntador al descriptor de archivo
+ * devuelto por la función accept.
 */
 void * atenderSolicitud(void * argumento){
    Parametros * parametros = (Parametros *) (argumento);
-   printf("Entro al hilo trabajador.\n"); //HLM Flag innecesario
-   printf("El tiempo de respuesta del servidor es %d.\n",parametros->servidor->tiempo); //HLM Flag innecesario...
    char mensajeDelCliente[256];
    char tiempo[100];
    char* solicitudGasolina = (char*)malloc(sizeof(char)*256);
@@ -364,10 +366,7 @@ void * atenderSolicitud(void * argumento){
    
    bzero(mensajeDelCliente,256);
    if( read(*parametros->descriptorSocket, &mensajeDelCliente, 256) > 0 ){
-      printf("Mensaje del Cliente: %s \n", mensajeDelCliente);    //HLM Flag innecesario
-
       if( strcmp(mensajeDelCliente,"Solicitud de Tiempo Respuesta") == 0){
-         printf("Solicitud de tiempo respuesta recibida\n");   //HLM Flag innecesario
          pthread_mutex_lock(&mutex_tiempoRespuesta);
          sprintf(tiempo, "%d", parametros->servidor->tiempo);
          pthread_mutex_unlock(&mutex_tiempoRespuesta);
@@ -376,7 +375,6 @@ void * atenderSolicitud(void * argumento){
          solicitudGasolina = strtok(mensajeDelCliente,"&");
          nombreBomba = strtok(NULL,"\n");
          if ( strcmp(solicitudGasolina,"Solicitud de Gasolina") == 0 ){
-            printf("Solicitud de gasolina recibida\n");     //HLM Flag innecesario      
             pthread_mutex_lock(&mutex_inventario);
             if(parametros->servidor->inventario >= 38000){
                write(*parametros->descriptorSocket, mensajeOk, strlen(mensajeOk));
@@ -392,7 +390,6 @@ void * atenderSolicitud(void * argumento){
          }
       }
    }
-   printf("Salgo del hilo Trabajador\n"); //HLM Flag innecesario
 }
 
 
@@ -412,8 +409,6 @@ void * manejarConexiones(void * argumento){
    Parametros parametros;
    parametros.servidor = servidor;
    parametros.descriptorSocket = &descriptorSocketCliente;
-   printf("Comienzo a manejar las conexiones.\n");   
-   printf("El valor del puerto del servidor es %d.\n", servidor->puerto);   
    
    // Se crea el socket
    descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
