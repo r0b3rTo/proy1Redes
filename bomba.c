@@ -397,19 +397,21 @@ void recibirGasolina(Bomba* bomba, int nuevaCarga){
  * tiempoMinimoRespuesta: entero que representa el tiempo de respuesta mínimo
  * de la lista de Centros.
 */
-int predecirLlamadoCentro(Bomba bomba, int minutoActual, int tiempoMinimoRespuesta){
+int predecirLlamadoCentro(Bomba* bomba, int minutoActual, int tiempoMinimoRespuesta){
    
-   int t = minutoActual;
-   if(bomba.capacidadMaxima - bomba.inventario < CARGA_GANDOLA){
-      t = ((CARGA_GANDOLA - (bomba.capacidadMaxima - bomba.inventario)) / bomba.consumo);
-      if(t - tiempoMinimoRespuesta >= 0){
-         t = t -tiempoMinimoRespuesta;
-      }else{
-         t = minutoActual;
+   int minutoPrediccion;
+   
+   if((bomba->capacidadMaxima - bomba->inventario) < CARGA_GANDOLA){
+      minutoPrediccion = ((CARGA_GANDOLA - (bomba->capacidadMaxima - bomba->inventario)) / bomba->consumo) + 6*(bomba->consumo);
+      printf("Tiempo de prediccion calculado: %d\n",minutoPrediccion);
+      if(minutoPrediccion - tiempoMinimoRespuesta >= 0){
+         minutoPrediccion = minutoPrediccion - tiempoMinimoRespuesta;
       }
+   }else{
+      minutoPrediccion = minutoActual;
    }
    
-   return t;
+   return minutoPrediccion;
 }
 
 /* obtenerTiemposRespuesta
@@ -423,6 +425,12 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
    
    int descriptorSocket;
    struct sockaddr_in direccionServidor;
+   struct hostent *host;
+   
+   char* ip = (char*)malloc(sizeof(char)*50);
+   if(ip == NULL){
+      terminar("Error de asignacion de memoria: " );
+   } 
    
    char* mensajeSolicitud = "Solicitud de Tiempo Respuesta";
    char tiempoRespuesta[100];
@@ -435,10 +443,19 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
    indiceLista = listaCentros;
    
    while(indiceLista != NULL){
+      
       /* Obtener la dirección del Centro */
+      if((host = gethostbyname(indiceLista->direccion)) == NULL){
+         errorFatal("Error: No se posible obtener el ip");
+      }
+
+      if((inet_ntop(AF_INET, (void *)host->h_addr_list[0], ip, strlen(ip))) == NULL) {
+         errorFatal("Error: No se puede resolver el host");
+      }
+
       bzero(&direccionServidor, sizeof(direccionServidor));
       direccionServidor.sin_family = AF_INET;
-      direccionServidor.sin_addr.s_addr = inet_addr(indiceLista->direccion);
+      direccionServidor.sin_addr.s_addr = inet_addr(ip);
       direccionServidor.sin_port = htons(indiceLista->puerto);
       printf("Direccion del Centro %s obtenida\n",indiceLista->nombre);
       
@@ -495,6 +512,12 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba* bomba, int minutoA
    int solicitudAceptada = 0;
    int descriptorSocket;
    struct sockaddr_in direccionServidor;
+   struct hostent *host;
+   
+   char* ip = (char*)malloc(sizeof(char)*50);
+   if(ip == NULL){
+      terminar("Error de asignacion de memoria: " );
+   } 
    
    char* mensaje = "Solicitud de Gasolina";
    char respuestaSolicitud[100];
@@ -520,9 +543,17 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba* bomba, int minutoA
       if(copiaListaCentros->tiempoRespuesta != -1){  
 
          /* Obtener la dirección del Centro */
+         if((host = gethostbyname(copiaListaCentros->direccion)) == NULL){
+            errorFatal("Error: No se posible obtener el ip");
+         }
+
+         if((inet_ntop(AF_INET, (void *)host->h_addr_list[0], ip, strlen(ip))) == NULL) {
+            errorFatal("Error: No se puede resolver el host");
+         }
+      
          bzero(&direccionServidor, sizeof(direccionServidor));
          direccionServidor.sin_family = AF_INET;
-         direccionServidor.sin_addr.s_addr = inet_addr(copiaListaCentros->direccion);
+         direccionServidor.sin_addr.s_addr = inet_addr(ip);
          direccionServidor.sin_port = htons(copiaListaCentros->puerto);
       
          /* Abrir un socket */
@@ -585,7 +616,7 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba* bomba, int minutoA
 int main(int argc, char *argv[]){
    
    Bomba bomba;
-   int minuto = 0, minutoSolicitudGasolina;
+   int minuto = 0, minutoSolicitudGasolina = 0;
    FILE *archivoCentros, *archivoLog;
    ListaServidor listaCentros = NULL;
    int numeroCentros = 0;
@@ -629,7 +660,7 @@ int main(int argc, char *argv[]){
    
    while(minuto < 480){
       printf("Minuto %d de la simulación. Inventario = %d\n", minuto, bomba.inventario);
-      minutoSolicitudGasolina = predecirLlamadoCentro(bomba, minuto, tiempoMinimoRespuesta);
+      minutoSolicitudGasolina = predecirLlamadoCentro(&bomba, minuto, tiempoMinimoRespuesta);
       printf("Minuto de Solicitud a Centros: %d\n", minutoSolicitudGasolina);
       
       if(minutoSolicitudGasolina <= minuto){
