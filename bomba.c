@@ -448,6 +448,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
          }
 
          /* Leer el Tiempo enviado por el Centro correspondiente*/
+         bzero(tiempoRespuesta,strlen(tiempoRespuesta));
          if (read(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta)*100) < 0){
             mensajeError("Error: No es posible recibir información del socket\n");
          }
@@ -530,6 +531,7 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoAc
             }
         
             /* Leer el Tiempo enviado por el Centro correspondiente*/
+            bzero(respuestaSolicitud,strlen(respuestaSolicitud));
             if (read(descriptorSocket, &respuestaSolicitud, sizeof(respuestaSolicitud)*100) < 0){
                mensajeError("Error: No es posible recibir información del socket\n");
             }
