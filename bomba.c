@@ -437,7 +437,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
       
       /* Obtener la dirección del Centro */
       struct hostent *host;
-      char* ip = (char*)malloc(sizeof(char)*50);
+      char* ip = (char*)malloc(sizeof(char)*16);
       if(ip == NULL){
          terminar("Error de asignacion de memoria: " );
       }
@@ -446,7 +446,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
          errorFatal("Error: No se posible obtener el ip");
       }
 
-      if((inet_ntop(AF_INET, (void *)host->h_addr_list[0], ip, strlen(ip))) == NULL) {
+      if((inet_ntop(AF_INET, (void *)host->h_addr_list[0], ip, 15)) == NULL) {
          errorFatal("Error: No se puede resolver el host");
       }
 
