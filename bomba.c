@@ -505,12 +505,6 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba* bomba, int minutoA
    int solicitudAceptada = 0;
    int descriptorSocket;
    struct sockaddr_in direccionServidor;
-   struct hostent *host;
-   
-   char* ip = (char*)malloc(sizeof(char)*50);
-   if(ip == NULL){
-      terminar("Error de asignacion de memoria: " );
-   } 
    
    char* mensaje = "Solicitud de Gasolina";
    char respuestaSolicitud[100];
@@ -536,11 +530,17 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba* bomba, int minutoA
       if(copiaListaCentros->tiempoRespuesta != -1){  
 
          /* Obtener la dirección del Centro */
+         struct hostent *host;
+         char* ip = (char*)malloc(sizeof(char)*16);
+         if(ip == NULL){
+            terminar("Error de asignacion de memoria: " );
+         } 
+         
          if((host = gethostbyname(copiaListaCentros->direccion)) == NULL){
             errorFatal("Error: No se posible obtener el ip");
          }
 
-         if((inet_ntop(AF_INET, (void *)host->h_addr_list[0], ip, strlen(ip))) == NULL) {
+         if((inet_ntop(AF_INET, (void *)host->h_addr_list[0], ip, 15)) == NULL) {
             errorFatal("Error: No se puede resolver el host");
          }
       
