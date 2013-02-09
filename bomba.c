@@ -48,6 +48,80 @@ ListaServidor obtenerCentros(ListaServidor listaCentros, FILE *archivoServidores
    return listaCentros;
 }
 
+/*escribirArchivoLog
+ * Descripción:
+ * Parámetros de entrada:
+ * nombreArchivoLog: nombre del archivo de log correspondiente a la bomba.
+ * mensaje: Cadena de caracteres que representa el tipo de evento relevante 
+ * ocurrido.
+ * (opcional) tiempoActual: valor entero con el tiempo actual de simulación del 
+ * programa.
+ * (opcional) inventario: valor entero que representa la cantidad de gasolina
+ * actual de la bomba. 
+ * (opcional) nombreCentro: nombre del centro de distribución al cual se le 
+ * solicitó gasolina.
+ * (opcional) resultadoPeticion: respuesta del centro al cual se le solicitó
+ * gasolina.
+ */
+void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual, int inventario,
+   char* nombreCentro, char* resultadoPeticion){
+   
+   FILE *archivoLog;
+   archivoLog = fopen(nombreArchivoLog,"a");
+   if(archivoLog == NULL){
+      mensajeError("Error: No se puede accesar al archivo del log de la Bomba\n");
+   }
+   
+   char* nuevaEntrada = (char*)malloc(sizeof(char)*256);
+   if(nuevaEntrada == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
+   
+   char bufferTiempo[100];
+   char bufferInventario[100];   
+   
+   strcpy(nuevaEntrada, mensaje);
+   strcat(nuevaEntrada, ": ");
+   if(strcmp(mensaje,"Estado Inicial") == 0){
+      sprintf(bufferInventario,"%d", inventario);
+      strcat(nuevaEntrada, bufferInventario);
+      strcat(nuevaEntrada, " litros");
+   }else if(strcmp(mensaje, "Tanque full") == 0){
+      strcat(nuevaEntrada, "Minuto ");
+      sprintf(bufferTiempo,"%d",tiempoActual);
+      strcat(nuevaEntrada, bufferTiempo);
+   }else if(strcmp(mensaje, "Tanque vacio") == 0){
+      strcat(nuevaEntrada, "Minuto ");
+      sprintf(bufferTiempo,"%d",tiempoActual);
+      strcat(nuevaEntrada, bufferTiempo);
+   }else if(strcmp(mensaje, "Peticion") == 0){
+      strcat(nuevaEntrada, "Minuto ");
+      sprintf(bufferTiempo,"%d",tiempoActual);
+      strcat(nuevaEntrada, bufferTiempo);
+      strcat(nuevaEntrada, ", ");
+      strcat(nuevaEntrada, nombreCentro);
+      strcat(nuevaEntrada, ", ");
+      strcat(nuevaEntrada, resultadoPeticion);
+   }else{
+      strcat(nuevaEntrada, "Minuto ");
+      sprintf(bufferTiempo,"%d",tiempoActual);
+      strcat(nuevaEntrada, bufferTiempo);
+      strcat(nuevaEntrada, ", ");
+      sprintf(bufferInventario,"%d", inventario);
+      strcat(nuevaEntrada, bufferInventario);
+      strcat(nuevaEntrada, " litros");
+   }
+   strcat(nuevaEntrada,"\n");
+   
+   printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada);
+   
+   if(fwrite(nuevaEntrada, sizeof(char), strlen(nuevaEntrada), archivoLog) < strlen(nuevaEntrada)){
+      mensajeError("Error: No se pudo escribir correctamente en el archivo log de la Bomba\n");
+   }
+   
+   fclose(archivoLog);
+}
+
 /* verificacionNombreBomba
  * Descripción: Procedimiento encargado de la verificación del valor del 
  * modificador -n.
@@ -398,15 +472,24 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
  * bomba: apuntador a la estructura Bomba.
  * descriptorSocket: identificador del socket perteneciente a la Bomba.
 */
-int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoActual){
+int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoActual, char* nombreArchivo){
    
    int solicitudAceptada = 0;
    int descriptorSocket;
    struct sockaddr_in direccionServidor;
    
-   char* mensajeSolicitud = "Solicitud de Gasolina";
+   char* mensaje = "Solicitud de Gasolina";
    char respuestaSolicitud[100];
    int tiempoEsperaCarga, tiempoEsperaExtra;
+   
+   char* mensajeSolicitud = (char*)malloc(sizeof(char)*256);
+   if(mensajeSolicitud == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
+   
+   strcpy(mensajeSolicitud,bomba.nombreBomba);
+   strcat(mensajeSolicitud,"&");
+   strcat(mensajeSolicitud,mensaje);
    
    ListaServidor copiaListaCentros = (SERVIDOR*)malloc(sizeof(SERVIDOR));
    if(copiaListaCentros == NULL){
@@ -442,6 +525,8 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoAc
             mensajeError("Error: No es posible recibir información del socket\n");
          }
       }
+      
+      escribirArchivoLog(nombreArchivo,"Peticion", minutoActual, 0, copiaListaCentros->nombre, respuestaSolicitud);
          
       if(strcmp(respuestaSolicitud,"Ok") == 0){
          printf("Solicitud de Gasolina aceptada por Centro %s\n", copiaListaCentros->nombre);
@@ -460,86 +545,13 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoAc
          usleep(tiempoEsperaExtra*100000);
          minutoActual = minutoActual + tiempoEsperaExtra; 
       }
-      
       recibirGasolina(&bomba,CARGA_GANDOLA);
+      escribirArchivoLog(nombreArchivo,"Llegada de la gandola", minutoActual, bomba.inventario, "", "");
    }
    
    return minutoActual;
 }
 
-/*escribirArchivoLog
- * Descripción:
- * Parámetros de entrada:
- * nombreArchivoLog: nombre del archivo de log correspondiente a la bomba.
- * mensaje: Cadena de caracteres que representa el tipo de evento relevante 
- * ocurrido.
- * (opcional) tiempoActual: valor entero con el tiempo actual de simulación del 
- * programa.
- * (opcional) inventario: valor entero que representa la cantidad de gasolina
- * actual de la bomba. 
- * (opcional) nombreCentro: nombre del centro de distribución al cual se le 
- * solicitó gasolina.
- * (opcional) resultadoPeticion: respuesta del centro al cual se le solicitó
- * gasolina.
- */
-void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual, int inventario,
-   char* nombreCentro, char* resultadoPeticion){
-   
-   FILE *archivoLog;
-   archivoLog = fopen(nombreArchivoLog,"a");
-   if(archivoLog == NULL){
-      mensajeError("Error: No se puede accesar al archivo del log de la Bomba\n");
-   }
-   
-   char* nuevaEntrada = (char*)malloc(sizeof(char)*256);
-   if(nuevaEntrada == NULL){
-      terminar("Error de asignacion de memoria: " );
-   }
-   
-   char bufferTiempo[100];
-   char bufferInventario[100];   
-   
-   strcpy(nuevaEntrada, mensaje);
-   strcat(nuevaEntrada, ": ");
-   if(strcmp(mensaje,"Estado Inicial") == 0){
-      sprintf(bufferInventario,"%d", inventario);
-      strcat(nuevaEntrada, bufferInventario);
-      strcat(nuevaEntrada, " litros");
-   }else if(strcmp(mensaje, "Tanque full") == 0){
-      strcat(nuevaEntrada, "Minuto ");
-      sprintf(bufferTiempo,"%d",tiempoActual);
-      strcat(nuevaEntrada, bufferTiempo);
-   }else if(strcmp(mensaje, "Tanque vacio") == 0){
-      strcat(nuevaEntrada, "Minuto ");
-      sprintf(bufferTiempo,"%d",tiempoActual);
-      strcat(nuevaEntrada, bufferTiempo);
-   }else if(strcmp(mensaje, "Peticion") == 0){
-      strcat(nuevaEntrada, "Minuto ");
-      sprintf(bufferTiempo,"%d",tiempoActual);
-      strcat(nuevaEntrada, bufferTiempo);
-      strcat(nuevaEntrada, ", ");
-      strcat(nuevaEntrada, nombreCentro);
-      strcat(nuevaEntrada, ", ");
-      strcat(nuevaEntrada, resultadoPeticion);
-   }else{
-      strcat(nuevaEntrada, "Minuto ");
-      sprintf(bufferTiempo,"%d",tiempoActual);
-      strcat(nuevaEntrada, bufferTiempo);
-      strcat(nuevaEntrada, ", ");
-      sprintf(bufferInventario,"%d", inventario);
-      strcat(nuevaEntrada, bufferInventario);
-      strcat(nuevaEntrada, " litros");
-   }
-   strcat(nuevaEntrada,"\n");
-   
-   printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada);
-   
-   if(fwrite(nuevaEntrada, sizeof(char), strlen(nuevaEntrada), archivoLog) < strlen(nuevaEntrada)){
-      mensajeError("Error: No se pudo escribir correctamente en el archivo log de la Bomba\n");
-   }
-   
-   fclose(archivoLog);
-}
 
 /*main
  * Descripción: Procedimiento principal del programa.
@@ -600,7 +612,7 @@ int main(int argc, char *argv[]){
       printf("Minuto de Solicitud a Centros: %d\n", minutoSolicitudGasolina);
       
       if(minutoSolicitudGasolina <= minuto){
-         minuto = solicitarEnvioGasolina(listaCentros, bomba, minuto);
+         minuto = solicitarEnvioGasolina(listaCentros, bomba, minuto, nombreArchivo);
          
          if(bomba.inventario == bomba.capacidadMaxima){
             escribirArchivoLog(nombreArchivo,"Tanque full", minuto+5, 0, "", "");
@@ -612,7 +624,7 @@ int main(int argc, char *argv[]){
       minuto = minuto + 5;
       
       if(bomba.inventario == 0){
-         escribirArchivoLog(nombreArchivo,"Tanque vacío", minuto, 0, "", "");
+         escribirArchivoLog(nombreArchivo,"Tanque vacio", minuto, 0, "", "");
       }
    }
 
