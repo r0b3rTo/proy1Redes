@@ -38,15 +38,16 @@ static struct option long_options[] = {
    {0, 0, 0, 0}
 };
 
-/*Tipo servidor
- *Contiene los parámetros que definen el funcionamiento del servidor.
- *Dichos parámetros son:
- *nombreCentro:      Nombre del centro de distribución
- *capacidadMaxima:   Capacidad máxima en litros
- *inventario:        Inventario actual
- *tiempo:            Tiempo de respuesta en minutos
- *suministro:        Suministro promedio en litros por minuto
- *puerto:            Puerto por el cual escuchará peticiones
+/* Tipo servidor
+ * Contiene los parámetros que definen el funcionamiento del servidor.
+ * Dichos parámetros son:
+ * nombreCentro:      Nombre del centro de distribución
+ * capacidadMaxima:   Capacidad máxima en litros
+ * inventario:        Inventario actual
+ * tiempo:            Tiempo de respuesta en minutos
+ * suministro:        Suministro promedio en litros por minuto
+ * puerto:            Puerto por el cual escuchará peticiones
+ * tiempoSimulacion:  Lapso de tiempo transcurrido de la simulación
 */
 typedef struct servidor{
    char* nombreCentro ;
@@ -57,3 +58,15 @@ typedef struct servidor{
    int puerto ;
    int tiempoSimulacion ;
 } Servidor;
+
+/* Tipo parametros 
+ * Contiene dos apuntadores a los parametros necesarios al momento de 
+ * satisfacer las solicitudes de los clientes.
+*/
+typedef struct parametros{
+   Servidor * servidor;
+   int * descriptorSocket;
+}Parametros;
+
+pthread_mutex_t mutex_inventario;
+pthread_mutex_t mutex_tiempoRespuesta;
