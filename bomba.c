@@ -124,7 +124,7 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
    }
    strcat(nuevaEntrada,"\n");
    
-   printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada);
+   //printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada);
    
    //Escribo en el archivo de log de la Bomba
    if(fwrite(nuevaEntrada, sizeof(char), strlen(nuevaEntrada), archivoLog) < strlen(nuevaEntrada)){
@@ -385,7 +385,7 @@ void consumirGasolina(Bomba* bomba){
 void recibirGasolina(Bomba* bomba, int nuevaCarga){
    
    bomba->inventario = bomba->inventario + nuevaCarga;
-   printf("Nuevo inventario: %d\n",bomba->inventario);
+   //printf("Nuevo inventario: %d\n",bomba->inventario);
 }
 
 /* predecirLlamadoCentro
@@ -403,7 +403,7 @@ int predecirLlamadoCentro(Bomba* bomba, int minutoActual, int tiempoMinimoRespue
    
    if((bomba->capacidadMaxima - bomba->inventario) < CARGA_GANDOLA){
       minutoPrediccion = ((CARGA_GANDOLA - (bomba->capacidadMaxima - bomba->inventario)) / bomba->consumo) + 6*(bomba->consumo);
-      printf("Tiempo de prediccion calculado: %d\n",minutoPrediccion);
+      //printf("Tiempo de prediccion calculado: %d\n",minutoPrediccion);
       if(minutoPrediccion - tiempoMinimoRespuesta >= 0){
          minutoPrediccion = minutoPrediccion - tiempoMinimoRespuesta;
       }
@@ -457,14 +457,14 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
       direccionServidor.sin_family = AF_INET;
       direccionServidor.sin_addr.s_addr = inet_addr(ip);
       direccionServidor.sin_port = htons(indiceLista->puerto);
-      printf("Direccion del Centro %s obtenida\n",indiceLista->nombre);
+      //printf("Direccion del Centro %s obtenida\n",indiceLista->nombre);
       
       /* Abrir un socket */
       descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
       if (descriptorSocket < 0){
          errorFatal("Error: No es posible abrir el socket");
       }
-      printf("Socket para tiempos de respuesta de Centro %s abierto\n", indiceLista->nombre);
+      //printf("Socket para tiempos de respuesta de Centro %s abierto\n", indiceLista->nombre);
       
       /* Conexión al Centro correspondiente */
       if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
@@ -482,7 +482,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
          }
       }
       
-      printf("Tiempo de Respuesta obtenido: %s\n", tiempoRespuesta);
+      //printf("Tiempo de Respuesta obtenido: %s\n", tiempoRespuesta);
       if(strcmp(tiempoRespuesta,"") != 0){
          tiempoLeido = atoi(tiempoRespuesta);
          indiceLista->tiempoRespuesta = tiempoLeido;
@@ -495,7 +495,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
 
    }
    
-   printf("obtenerTiemposRespuesta finalizado\n");
+   //printf("obtenerTiemposRespuesta finalizado\n");
 }
 
 /* solicitarEnvioGasolina
@@ -561,7 +561,7 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba* bomba, int minutoA
          if (descriptorSocket < 0){
             errorFatal("Error: No es posible abrir el socket");
          }
-         printf("Socket para tiempos de respuesta de Centro %s abierto\n", copiaListaCentros->nombre);
+         //printf("Socket para tiempos de respuesta de Centro %s abierto\n", copiaListaCentros->nombre);
       
          /* Conexión al Centro correspondiente */
          if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
@@ -582,7 +582,7 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba* bomba, int minutoA
          escribirArchivoLog(nombreArchivo,"Peticion", minutoActual, 0, copiaListaCentros->nombre, respuestaSolicitud);
          
          if(strcmp(respuestaSolicitud,"Ok") == 0){
-            printf("Solicitud de Gasolina aceptada por Centro %s\n", copiaListaCentros->nombre);
+            //printf("Solicitud de Gasolina aceptada por Centro %s\n", copiaListaCentros->nombre);
             solicitudAceptada = 1;
             tiempoEsperaCarga = copiaListaCentros->tiempoRespuesta;
             break;
@@ -636,7 +636,7 @@ int main(int argc, char *argv[]){
    listaCentros = obtenerCentros(listaCentros, archivoCentros);
    fclose(archivoCentros);
    imprimirServidores(listaCentros);
-   printf("Centros obtenidos desde el archivo\n");
+   //printf("Centros obtenidos desde el archivo\n");
    
    char* nombreArchivo = (char*)malloc(sizeof(char)*100);
    if(nombreArchivo == NULL){
@@ -645,23 +645,23 @@ int main(int argc, char *argv[]){
    strcpy(nombreArchivo,"log_");
    strcat(nombreArchivo,bomba.nombreBomba); 
    strcat(nombreArchivo,".txt");
-   printf("Nombre de archivo log: %s\n", nombreArchivo);
+   //printf("Nombre de archivo log: %s\n", nombreArchivo);
    archivoLog = fopen(nombreArchivo,"w+");
    fclose(archivoLog);
    escribirArchivoLog(nombreArchivo,"Estado Inicial", 0, bomba.inventario, "", "");
    
    obtenerTiemposRespuesta(listaCentros);
-   printf("Tiempos de Respuesta obtenidos\n");
+   //printf("Tiempos de Respuesta obtenidos\n");
    
    listaCentros = ordenarLista(listaCentros);
-   printf("Lista de Centros ordenada\n");
+   //printf("Lista de Centros ordenada\n");
    imprimirServidores(listaCentros);
    tiempoMinimoRespuesta = listaCentros->tiempoRespuesta;
    
    while(minuto < 480){
-      printf("Minuto %d de la simulación. Inventario = %d\n", minuto, bomba.inventario);
+      //printf("Minuto %d de la simulación. Inventario = %d\n", minuto, bomba.inventario);
       minutoSolicitudGasolina = predecirLlamadoCentro(&bomba, minuto, tiempoMinimoRespuesta);
-      printf("Minuto de Solicitud a Centros: %d\n", minutoSolicitudGasolina);
+      //printf("Minuto de Solicitud a Centros: %d\n", minutoSolicitudGasolina);
       
       if(minutoSolicitudGasolina <= minuto){
          minuto = solicitarEnvioGasolina(listaCentros, &bomba, minuto, nombreArchivo);
@@ -680,6 +680,6 @@ int main(int argc, char *argv[]){
       }
    }
 
-   printf("*** Fin de la simulación ***\n");
+   //printf("*** Fin de la simulación ***\n");
    exit(EXIT_SUCCESS);   
 }

@@ -500,7 +500,7 @@ void * actualizarSimulacion(void *argumento){
    escribirArchivoLog(nombreArchivoLog, "Estado Inicial", 0, servidor->inventario, servidor->nombreCentro, "");
 
    while(servidor->tiempoSimulacion < TIEMPO_SIMULACION){
-      printf("Minuto %d de la simulación. Inventario = %d\n", servidor->tiempoSimulacion, servidor->inventario);
+   //   printf("Minuto %d de la simulación. Inventario = %d\n", servidor->tiempoSimulacion, servidor->inventario);
       usleep(100*1000); //HLM hay que cambiar a 100*1000
       pthread_mutex_lock(&mutex_inventario);
       if(servidor->inventario == 0){
@@ -558,8 +558,8 @@ int main(int argc, char *argv[]){
 
    pthread_mutex_destroy(&mutex_inventario);   
    pthread_mutex_destroy(&mutex_tiempoRespuesta);   
-   printf("El programa principal ha terminado con éxito.\n"); //HLM Este flag no es necesario...
-   imprimirServidor(servidor); //HLM Este flag no es necesario...
+   //printf("El programa principal ha terminado con éxito.\n"); //HLM Este flag no es necesario...
+   //imprimirServidor(servidor); //HLM Este flag no es necesario...
 
    return 0;
 }
