@@ -236,7 +236,7 @@ void imprimirServidor(Servidor servidor){
  * servidor: apuntador a la estructura servidor de donde se obtendrá
  * el nombre del Centro de Distribución.
 */
-char * obtenerNombreArchivoLog(Servidor * servidor){
+char * obtenerNombreArchivoLog(char * nombreCentro){
    FILE *archivoLog;
 
    char* nombreArchivo = (char*)malloc(sizeof(char)*100);
@@ -244,18 +244,47 @@ char * obtenerNombreArchivoLog(Servidor * servidor){
       terminar("Error de asignacion de memoria: " );
    }
    strcpy(nombreArchivo,"log_");
-   strcat(nombreArchivo,servidor->nombreCentro); 
+   strcat(nombreArchivo,nombreCentro); 
    strcat(nombreArchivo,".txt");
    printf("Nombre de archivo log: %s\n", nombreArchivo); //HLM Flag innecesario...
    return nombreArchivo;
-   
+}
+
+
+/* crearLog
+ * Descripción:
+ * Parámetro de entrada:
+ * nombreServidor: Apuntador a la cadena de caracteres dentro de la estructura 
+ * Servidor que guarda el nombre del Centro de Distribución.
+*/
+void crearLog(char * nombreCentro){
+   char * nombreArchivoLog = obtenerNombreArchivoLog(nombreCentro);
+   FILE *archivoLog;
+   archivoLog = fopen(nombreArchivoLog,"w+");
+   if(archivoLog == NULL){
+      mensajeError("Error: No se puede accesar al archivo del log del Centro de Distribución.\n");
+   }
+
 }
 
 
 /* escribirArchivoLog
- * Descripción: Procedimiento que se encarga de actualizar los valores del 
- * archivo bitácora de ejecución del servidor.
+ * Descripción: Procedimiento que se encarga del archivo bitácora de 
+ * ejecución del servidor.
  * Parámetros de entrada:
+ * nombreArchivoLog: apuntador a una cadena de caracteres que representa el 
+ * nombre del archivo bitácora de ejecución del servidor.
+ * mensaje: apuntador a una cadena de caracteres que indica el tipo de mensaje
+ * que se debe añadir a la bitácora del servidor, de acuerdo al evento 
+ * relevante ocurrido durante la simulación.
+ * tiempoActual: valor entero que indica el momento de la simulación en que 
+ * ocurre el evento relevante.
+ * inventario: valor entero que indica el nivel del inventario del Centro de 
+ * Distribución al momento de ocurrir el evento relevante.
+ * nombreBomba: nombre de la bomba o estación de servicio que se está 
+ * comunicando con el servidor.
+ * resultadoPeticion: resultado de la petición solicitada por el programa 
+ * cliente.
 */
 void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual, int inventario,
    char* nombreBomba, char* resultadoPeticion){
@@ -302,7 +331,7 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
    }
    strcat(nuevaEntrada,"\n");
    
-   printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada); //HLM
+//   printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada); //HLM
    
    if(fwrite(nuevaEntrada, sizeof(char), strlen(nuevaEntrada), archivoLog) < strlen(nuevaEntrada)){
       mensajeError("Error: No se pudo escribir correctamente en el archivo log de la Bomba\n");
@@ -321,9 +350,17 @@ void * atenderSolicitud(void * argumento){
    printf("El tiempo de respuesta del servidor es %d.\n",parametros->servidor->tiempo); //HLM Flag innecesario...
    char mensajeDelCliente[256];
    char tiempo[100];
+   char* solicitudGasolina = (char*)malloc(sizeof(char)*256);
+   if(solicitudGasolina == NULL){
+      terminar("Error de asignacion de memoria" );
+   }
+   char* nombreBomba = (char*)malloc(sizeof(char)*256);
+   if(nombreBomba == NULL){
+      terminar("Error de asignacion de memoria" );
+   }
    char* mensajeOk = "Ok";
    char* mensajeNoDisponible = "No disponible";
-   char * nombreArchivoLog = obtenerNombreArchivoLog(parametros->servidor);
+   char* nombreArchivoLog = obtenerNombreArchivoLog(parametros->servidor->nombreCentro);
    
    bzero(mensajeDelCliente,256);
    if( read(*parametros->descriptorSocket, &mensajeDelCliente, 256) > 0 ){
@@ -334,21 +371,25 @@ void * atenderSolicitud(void * argumento){
          pthread_mutex_lock(&mutex_tiempoRespuesta);
          sprintf(tiempo, "%d", parametros->servidor->tiempo);
          pthread_mutex_unlock(&mutex_tiempoRespuesta);
-         send(*parametros->descriptorSocket, tiempo, 100, 0);
-      } else if( strcmp(mensajeDelCliente,"Solicitud de Gasolina") == 0 ){
-         printf("Solicitud de gasolina recibida\n");     //HLM Flag innecesario      
-         pthread_mutex_lock(&mutex_inventario);
-         if(parametros->servidor->inventario >= 38000){
-            send(*parametros->descriptorSocket, mensajeOk, strlen(mensajeOk), 0);
-            parametros->servidor->inventario = parametros->servidor->inventario - 38000;
-            escribirArchivoLog(nombreArchivoLog, "Suministro", parametros->servidor->tiempoSimulacion, 
-                                 parametros->servidor->inventario, parametros->servidor->nombreCentro, mensajeOk);
-         }else{
-            send(*parametros->descriptorSocket, mensajeNoDisponible, strlen(mensajeNoDisponible), 0);
-            escribirArchivoLog(nombreArchivoLog, "Suministro", parametros->servidor->tiempoSimulacion, 
-                                 parametros->servidor->inventario, parametros->servidor->nombreCentro, mensajeNoDisponible);
+         write(*parametros->descriptorSocket, tiempo, 100);
+      } else {
+         solicitudGasolina = strtok(mensajeDelCliente,"&");
+         nombreBomba = strtok(NULL,"\n");
+         if ( strcmp(solicitudGasolina,"Solicitud de Gasolina") == 0 ){
+            printf("Solicitud de gasolina recibida\n");     //HLM Flag innecesario      
+            pthread_mutex_lock(&mutex_inventario);
+            if(parametros->servidor->inventario >= 38000){
+               write(*parametros->descriptorSocket, mensajeOk, strlen(mensajeOk));
+               parametros->servidor->inventario = parametros->servidor->inventario - 38000;
+               escribirArchivoLog(nombreArchivoLog, "Suministro", parametros->servidor->tiempoSimulacion, 
+                                    parametros->servidor->inventario, nombreBomba, mensajeOk);
+            }else{
+               write(*parametros->descriptorSocket, mensajeNoDisponible, strlen(mensajeNoDisponible));
+               escribirArchivoLog(nombreArchivoLog, "Suministro", parametros->servidor->tiempoSimulacion, 
+                                    parametros->servidor->inventario, nombreBomba, mensajeNoDisponible);
+            }
+            pthread_mutex_unlock(&mutex_inventario);
          }
-         pthread_mutex_unlock(&mutex_inventario);
       }
    }
    printf("Salgo del hilo Trabajador\n"); //HLM Flag innecesario
@@ -433,7 +474,7 @@ void * actualizarSimulacion(void *argumento){
    char * ipServidor;
    ipServidor = "127.0.0.1";
    
-   char * nombreArchivoLog = obtenerNombreArchivoLog(servidor);
+   char * nombreArchivoLog = obtenerNombreArchivoLog(servidor->nombreCentro);
    escribirArchivoLog(nombreArchivoLog, "Estado Inicial", 0, servidor->inventario, servidor->nombreCentro, "");
 
    while(servidor->tiempoSimulacion < TIEMPO_SIMULACION){
@@ -479,25 +520,25 @@ void * actualizarSimulacion(void *argumento){
 
 
 int main(int argc, char *argv[]){
-   pthread_t hiloActualizador, hiloManejador;
-   int * retorna;
    Servidor servidor;
+   pthread_t hiloActualizador, hiloManejador;
    
    inicializarServidor(&servidor);
 // imprimirServidor(servidor);   HLM Este flag no es necesario...
    manejarParametros(argc, argv, &servidor);
-   imprimirServidor(servidor); //HLM Este flag no es necesario...
+//   imprimirServidor(servidor); //HLM Este flag no es necesario...
+   crearLog(servidor.nombreCentro);
    pthread_mutex_init(&mutex_inventario, NULL);
    pthread_mutex_init(&mutex_tiempoRespuesta, NULL);
         
    // Crea el hilo que se encargara de manejar la conexiones de los clientes.
    if (pthread_create(&hiloManejador,NULL,manejarConexiones,(void *)&servidor) != 0) {
-      fprintf(stderr,"No se pudo crear el thread hilo:%s\n",strerror(errno));
+      fprintf(stderr,"No se pudo crear el thread hilo Manejador: %s\n",strerror(errno));
    }
   
    // Crea el hilo que se encargara de actualizar los valores de la simulación.
    if (pthread_create(&hiloActualizador,NULL,actualizarSimulacion,(void *)&servidor) != 0) {
-      fprintf(stderr,"No se pudo crear el thread hilo:%s\n",strerror(errno));
+      fprintf(stderr,"No se pudo crear el thread hilo Actualizador: %s\n",strerror(errno));
    }
 
    // Espera a que el hilo que actualiza los valores de la simulación termine.
@@ -506,10 +547,9 @@ int main(int argc, char *argv[]){
    }
 
    //Espera a que el hilo que maneja las conexiones de los clientes termine.
-   if (pthread_join(hiloManejador,(void**)&retorna) != 0 ){
+   if (pthread_join(hiloManejador,NULL) != 0 ){
       fprintf(stderr,"Hubo un problema con la terminación del hilo Manejador: %s\n",strerror(errno));
    }
-   printf("El hilo manejador retorna %d\n", *retorna);
 
    pthread_mutex_destroy(&mutex_inventario);   
    pthread_mutex_destroy(&mutex_tiempoRespuesta);   
