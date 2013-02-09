@@ -75,6 +75,7 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
    
    FILE *archivoLog;
    
+   //Abro el archivo apuntando hacia el final del mismo para agregar el nuevo mensaje
    archivoLog = fopen(nombreArchivoLog,"a");
    if(archivoLog == NULL){
       mensajeError("Error: No se puede accesar al archivo del log de la Bomba\n");
@@ -90,6 +91,8 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
    
    strcpy(nuevaEntrada, mensaje);
    strcat(nuevaEntrada, ": ");
+   
+   //Comparo para identificar cuál mensaje se registrará
    if(strcmp(mensaje,"Estado Inicial") == 0){
       sprintf(bufferInventario,"%d", inventario);
       strcat(nuevaEntrada, bufferInventario);
@@ -123,10 +126,12 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
    
    printf("Nueva Entrada en el archivo log: %s\n",nuevaEntrada);
    
+   //Escribo en el archivo de log de la Bomba
    if(fwrite(nuevaEntrada, sizeof(char), strlen(nuevaEntrada), archivoLog) < strlen(nuevaEntrada)){
       mensajeError("Error: No se pudo escribir correctamente en el archivo log de la Bomba\n");
    }
    
+   //Cierro el archivo de log
    fclose(archivoLog);
 }
 
@@ -143,12 +148,14 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
  * correcto.
 */
 void verificacionNombreBomba(char** nombreBomba, int *flagN){
+   
    if( strcmp(optarg,"") == 0 ){
       printf("Debe proveer un nombre de Bomba distinto de vacío para el modificador '-n'.\n");
    }else{
       *nombreBomba = optarg;
       *flagN = 1;
    }
+   
 }
 
 /* verificacionFicheroCentros
@@ -177,6 +184,7 @@ void verificacionFicheroCentros(char** ficheroCentros, int *flagFC){
          *flagFC = 1;
       }
    }
+   
 }
 
 
@@ -195,6 +203,7 @@ void verificacionFicheroCentros(char** ficheroCentros, int *flagFC){
  * correcto.
 */
 void verificacionEntero(int opt, int minimo, int maximo, int *variableBomba, int *flagParametro){
+   
    float temp = -1.0;
    sscanf(optarg,"%f",&temp);
    int aux = (int) temp;
@@ -208,7 +217,7 @@ void verificacionEntero(int opt, int minimo, int maximo, int *variableBomba, int
          //No se ha inicializado el valor del modificador 'cp'-> capacidadMaxima
          printf("El modificador '-i' debe ir precedido por el modificador '-cp' y su valor correspondiente.\n");
       }else if( aux2 != 0 ){
-         //Se introdujo un valor flotante
+         //El valor pasado como parámetro es de tipo flotante
          if( opt == 'm' ){
             printf("El valor del modificador '-cp' debe ser entero.\n");      
          }else{
@@ -255,6 +264,7 @@ void imprimirIndicaciones(){
  * correcto.
 */
 void verificarParametrosFaltantes(int flagN, int flagCP, int flagI, int flagC, int flagFC){
+   
    if(!flagN){
       printf("Falta el modificador '-n' y su valor correspondiente.\n");
    } 
@@ -273,7 +283,8 @@ void verificarParametrosFaltantes(int flagN, int flagCP, int flagI, int flagC, i
    if(!flagN || !flagCP || !flagI || !flagC || !flagFC){
       imprimirIndicaciones();
       terminar("Error en la invocación del programa: ");
-   } 
+   }
+   
 }
 
 
