@@ -48,7 +48,11 @@ ListaServidor insertarServidor(ListaServidor listaServidores, char* nombre, char
      nuevoServidor->direccion = auxDireccion;
      nuevoServidor->puerto = auxPuerto;
      nuevoServidor->tiempoRespuesta = auxTiempoRespuesta;
-     nuevoServidor-> siguiente = listaServidores; 
+     if(listaServidores != NULL){
+        nuevoServidor-> siguiente = listaServidores; 
+     }else{
+        nuevoServidor->siguiente = NULL;
+     }
      listaServidores = nuevoServidor;
      
      return listaServidores;       
@@ -117,37 +121,34 @@ ListaServidor buscarServidor(ListaServidor listaServidores, char* nombre){
 /*
  * Funcion ordenarLista
  */
-void ordenarLista(ListaServidor *listaServidores){
-    ListaServidor copiaListaServidores = (SERVIDOR*)malloc(sizeof(SERVIDOR));
-    if(copiaListaServidores == NULL){
-         terminar("Error de asignacion de memoria: " );
-    }
-    copiaListaServidores = *listaServidores;
-    ListaServidor aux, aux2, anterior;
-    aux= *listaServidores;
-    anterior = NULL;
-    while(copiaListaServidores != NULL){
-        aux2 = aux->siguiente;
-        if(aux->tiempoRespuesta > aux2->tiempoRespuesta){
-            aux->siguiente = aux2->siguiente;
-            aux2->siguiente = aux;
-            if(anterior == NULL){
-                *listaServidores = aux2;
-                anterior = *listaServidores;
-            }
-            else{
-                anterior->siguiente = aux2;
-                anterior = aux2;
-            }
-            aux = anterior->siguiente;
-        }
-        else{
-            anterior = aux;
-            aux = aux2;
-        }
-        copiaListaServidores = copiaListaServidores->siguiente;
-    }
+ListaServidor ordenarLista(ListaServidor listaServidores){
+   
+   ListaServidor copiaListaServidores = (SERVIDOR*)malloc(sizeof(SERVIDOR));
+   if(copiaListaServidores == NULL){
+      terminar("Error de asignacion de memoria: " );
+   }
+   copiaListaServidores = listaServidores;
+   ListaServidor cabeza, aux1, aux2;
+   cabeza,aux1 = listaServidores;
+   int indiceLista, longitud = length(copiaListaServidores);
+   for(indiceLista = 1; indiceLista <= longitud; indiceLista++){
+      
+      while(aux1->siguiente != NULL){
+         aux2 = aux1->siguiente;
+         if(aux1->tiempoRespuesta > aux2->tiempoRespuesta){
+            aux1->siguiente = aux2->siguiente;
+            aux2->siguiente = aux1;
+            cabeza = aux2;
+         }else{
+            aux1 = aux2;
+         }
+      }
+      aux1 = listaServidores;
+   }
+   
+   return cabeza;
 }
+
 
 /* Funcion length
 *    Parametros de entrada: Una estructura de tipo ListaServidor que contiene elementos

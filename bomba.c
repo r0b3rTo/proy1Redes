@@ -11,19 +11,26 @@
 
 #include "bomba.h"
 
-/* Funcion obtenerCentros
-*    Parametros de entrada: Una lista de Servidores y una estructura de tipo FILE,
-*    que apunta a un archivo abierto.
-*    Parametro de salida: Una lista de Servidores.
-*    Descripción: Toma el apuntador a un file, y lo recorre insertando todos
-*    los centros del archivo en la lista.
+/* obtenerCentros
+*  Parametros de entrada:
+*  listaCentros: estructura ListaServidor vacía.
+*  archivoServidores: apuntador al archivo que contiene los datos de los
+*  distintos centros.
+*  Parámetros de salida:
+*  listaCentros: estructura ListaServidor que posee ahora todos los datos de los
+*  distintos centros.
+*  Descripción: Función encargada de rellenar la ListaServidor, tomando el 
+*  apuntador a un archivo, y lo recorre insertando todos los centros del archivo 
+*  en la ListaServidor.
 */
 ListaServidor obtenerCentros(ListaServidor listaCentros, FILE *archivoServidores){
-  char servidorInfo [100];
-  char* nombreServidor;
-  char* direccionServidor;
-  int puertoServidor;
-  while(fgets(servidorInfo,sizeof(servidorInfo),archivoServidores) != NULL){
+  
+   char servidorInfo [100];
+   char* nombreServidor;
+   char* direccionServidor;
+   int puertoServidor;
+   
+   while(fgets(servidorInfo,sizeof(servidorInfo),archivoServidores) != NULL){
       nombreServidor = (char*)malloc(sizeof(char)*100);
       if(nombreServidor == NULL){
          terminar("Error de asignacion de memoria: " );
@@ -36,8 +43,9 @@ ListaServidor obtenerCentros(ListaServidor listaCentros, FILE *archivoServidores
       direccionServidor = strtok(NULL,"&");
       puertoServidor = atoi(strtok(NULL,"&\n"));
       listaCentros = insertarServidor(listaCentros,nombreServidor,direccionServidor,puertoServidor,0);
-  }
-  return listaCentros;
+   }
+   
+   return listaCentros;
 }
 
 /* verificacionNombreBomba
@@ -97,6 +105,12 @@ void verificacionFicheroCentros(char** ficheroCentros, int *flagFC){
  * En caso de que el valor sea válido, le coloca un valor TRUE a la variable flagParametro
  * para indicar que se inicializó con éxito el parámetro.
  * Parámetros de entrada:
+ * opt: valor pasado como parámetro en la invocación de la bomba.
+ * minimo: valor minimo que puede optar el valor opt.
+ * maximo: valor maximo que puede optar el valor opt.
+ * variableBomba: apuntador al valor de la propiedad de Bomba a la cual se está verificando.
+ * flagParametro: apuntador a la variable que indica si el valor del parámetro es 
+ * correcto.
 */
 void verificacionEntero(int opt, int minimo, int maximo, int *variableBomba, int *flagParametro){
    float temp = -1.0;
@@ -130,10 +144,8 @@ void verificacionEntero(int opt, int minimo, int maximo, int *variableBomba, int
 }
 
 /* imprimirIndicaciones
- * Descripción: Función que imprime en pantalla la manera apropiada de 
+ * Descripción: Función que imprime en la salida estándar la manera apropiada de 
  * invocar el programa.
- * Parámetro de entrada: 
- * estado: entero que indica si el programa termina con éxito o no.
 */
 void imprimirIndicaciones(){                                                                                                     
       printf ("Uso: %s -n nombreBomba -cp capacidadMaxima -i inventario -c consumo -fc ficheroCentros\n", PROGRAM_NAME);           
@@ -149,7 +161,16 @@ void imprimirIndicaciones(){
  * Descripción: Procedimiento que verifica que todos los parámetros de 
  * invocación del programa se hayan inicializado de manera correcta.
  * Parámetros de entrada:
- * flagN
+ * flagN: apuntador a la variable que indica si el valor del parámetro -n es 
+ * correcto.
+ * flagCP: apuntador a la variable que indica si el valor del parámetro -cp es 
+ * correcto.
+ * flagI: apuntador a la variable que indica si el valor del parámetro -i es 
+ * correcto.
+ * flagC: apuntador a la variable que indica si el valor del parámetro -c es 
+ * correcto.
+ * flagFC: apuntador a la variable que indica si el valor del parámetro -fc es 
+ * correcto.
 */
 void verificarParametrosFaltantes(int flagN, int flagCP, int flagI, int flagC, int flagFC){
    if(!flagN){
@@ -178,6 +199,11 @@ void verificarParametrosFaltantes(int flagN, int flagCP, int flagI, int flagC, i
  * Descripción: Procedimiento que maneja apropiadamente los parámetros 
  * introducidos como modificadores a través de la línea de comandos.
  * Parámetros de entrada:
+ * argc: valor entero que representa el número de parámetros pasados al
+ * programa en su invocación.
+ * argv: arreglo unidimensional de cadena de caracteres, en donde cada 
+ * cadena de caracteres es el valor de cada parámetro pasado al programa.
+ * bomba: apuntador a la estructura Bomba.
 */
 void manejarParametros(int argc, char *argv[], Bomba* bomba){
    int flagN = 0;
@@ -232,7 +258,7 @@ void manejarParametros(int argc, char *argv[], Bomba* bomba){
  * Descripción: Procedimiento que inicializa la estructura Bomba para evitar
  * que el programa se comporte de manera errónea a causa de valores basura.
  * Parámetro de entrada: 
- * bomba: apuntador a la estructura Bomba
+ * bomba: apuntador a la estructura Bomba.
 */
 void inicializarBomba(Bomba* bomba){
    bomba->nombreBomba = "";
@@ -261,7 +287,7 @@ void consumirGasolina(Bomba* bomba){
  * Descripción: Procedimiento que simula el ingreso de la carga de gasolina.
  * Parámetro de entrada: 
  * bomba: apuntador a la estructura Bomba.
- * 
+ * nuevaCarga: valor entero que representa la cantidad de gasolina que ingresó.
 */
 void recibirGasolina(Bomba* bomba, int nuevaCarga){
    
@@ -270,7 +296,8 @@ void recibirGasolina(Bomba* bomba, int nuevaCarga){
 }
 
 /* predecirLlamadoCentro
- * Descripción:.
+ * Descripción: Función encargada de obtener la predicción del minuto en el cual
+ * la bomba necesitará solicitar una carga de gasolina.
  * Parámetro de entrada: 
  * bomba: apuntador a la estructura Bomba.
  * minutoActual: entero que representa el minuto actual de la simulación.
@@ -278,6 +305,7 @@ void recibirGasolina(Bomba* bomba, int nuevaCarga){
  * de la lista de Centros.
 */
 int predecirLlamadoCentro(Bomba bomba, int minutoActual, int tiempoMinimoRespuesta){
+   
    int t = minutoActual;
    if(bomba.capacidadMaxima - bomba.inventario < CARGA_GANDOLA){
       t = ((CARGA_GANDOLA - (bomba.capacidadMaxima - bomba.inventario)) / bomba.consumo);
@@ -287,11 +315,13 @@ int predecirLlamadoCentro(Bomba bomba, int minutoActual, int tiempoMinimoRespues
          t = minutoActual;
       }
    }
+   
    return t;
 }
 
 /* obtenerTiemposRespuesta
- * Descripción:.
+ * Descripción: Procedimiento que obtiene de cada Centro sus tiempos de respuesta,
+ * a través de sockets.
  * Parámetro de entrada: 
  * listaCentros: apuntador a la estructura de tipo ListaServidor que contiene
  * los datos de los distintos centros de distribución.
@@ -337,7 +367,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
 
          /* Leer el Tiempo enviado por el Centro correspondiente*/
          bzero(tiempoRespuesta,100);
-         if (recv(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta)*100,0) == 1){
+         if (read(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta)*100) < 0){
             mensajeError("Error: No es posible recibir información del socket\n");
          }
       }
@@ -349,24 +379,29 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
       
       /* Cerrar el socket*/
       close(descriptorSocket);
-      
-      indiceLista = indiceLista->siguiente;
+      if (indiceLista->siguiente!=NULL) {
+         indiceLista = indiceLista->siguiente;
+      } else {
+         indiceLista = NULL;
+      }
    }
    
    printf("obtenerTiemposRespuesta finalizado\n");
 }
 
 /* solicitarEnvioGasolina
- * Descripción:.
+ * Descripción: Función encargado de gestionar las solicitudes de gasolina
+ * a los distintos centros.
  * Parámetro de entrada: 
  * listaCentros: apuntador a la estructura de tipo ListaServidor que contiene
  * los datos de los distintos centros de distribución.
  * bomba: apuntador a la estructura Bomba.
  * descriptorSocket: identificador del socket perteneciente a la Bomba.
 */
-void solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoActual, int descriptorSocket){
+int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoActual){
    
    int solicitudAceptada = 0;
+   int descriptorSocket;
    struct sockaddr_in direccionServidor;
    
    char* mensajeSolicitud = "Solicitud de Gasolina";
@@ -383,20 +418,27 @@ void solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoA
       /* Obtener la dirección del Centro */
       bzero(&direccionServidor, sizeof(direccionServidor));
       direccionServidor.sin_family = AF_INET;
-      direccionServidor.sin_addr.s_addr = inet_addr(INADDR_ANY);
+      direccionServidor.sin_addr.s_addr = inet_addr(copiaListaCentros->direccion);
       direccionServidor.sin_port = htons(copiaListaCentros->puerto);
+      
+      /* Abrir un socket */
+      descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
+      if (descriptorSocket < 0){
+         errorFatal("Error: No es posible abrir el socket");
+      }
+      printf("Socket para tiempos de respuesta de Centro %s abierto\n", copiaListaCentros->nombre);
       
       /* Conexión al Centro correspondiente */
       if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
          mensajeError("Error: No es posible conectarse con el centro\n");
       } else {
          /* Enviar solicitud de Tiempo de Respuesta*/
-         if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)) == 0){
+         if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)*100) == 0){
             mensajeError("Error: No es posible escribir en el socket\n");
          }
         
          /* Leer el Tiempo enviado por el Centro correspondiente*/
-         if (recv(descriptorSocket, &respuestaSolicitud, sizeof(respuestaSolicitud),0) == 1){
+         if (read(descriptorSocket, &respuestaSolicitud, sizeof(respuestaSolicitud)*100) < 0){
             mensajeError("Error: No es posible recibir información del socket\n");
          }
       }
@@ -418,11 +460,28 @@ void solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoA
          usleep(tiempoEsperaExtra*100000);
          minutoActual = minutoActual + tiempoEsperaExtra; 
       }
+      
       recibirGasolina(&bomba,CARGA_GANDOLA);
    }
    
+   return minutoActual;
 }
 
+/*escribirArchivoLog
+ * Descripción:
+ * Parámetros de entrada:
+ * nombreArchivoLog: nombre del archivo de log correspondiente a la bomba.
+ * mensaje: Cadena de caracteres que representa el tipo de evento relevante 
+ * ocurrido.
+ * (opcional) tiempoActual: valor entero con el tiempo actual de simulación del 
+ * programa.
+ * (opcional) inventario: valor entero que representa la cantidad de gasolina
+ * actual de la bomba. 
+ * (opcional) nombreCentro: nombre del centro de distribución al cual se le 
+ * solicitó gasolina.
+ * (opcional) resultadoPeticion: respuesta del centro al cual se le solicitó
+ * gasolina.
+ */
 void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual, int inventario,
    char* nombreCentro, char* resultadoPeticion){
    
@@ -482,6 +541,14 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
    fclose(archivoLog);
 }
 
+/*main
+ * Descripción: Procedimiento principal del programa.
+ * Parámetros de entrada:
+ * argc: valor entero que representa el número de parámetros pasados al
+ * programa en su invocación.
+ * argv: arreglo unidimensional de cadena de caracteres, en donde cada 
+ * cadena de caracteres es el valor de cada parámetro pasado al programa.
+ */
 int main(int argc, char *argv[]){
    
    Bomba bomba;
@@ -491,7 +558,7 @@ int main(int argc, char *argv[]){
    int numeroCentros = 0;
    int tiempoMinimoRespuesta = 0;
    
-   int descriptorSocket, numeroPuerto;
+   int numeroPuerto;
    struct sockaddr_in direccionServidor;
    
    inicializarBomba(&bomba);
@@ -502,10 +569,6 @@ int main(int argc, char *argv[]){
       errorFatal("Error: No se puede accesar al archivo de Centros\n");
    }
    
-   listaCentros = (SERVIDOR*)malloc(sizeof(SERVIDOR));
-   if(listaCentros == NULL){
-      terminar("Error de asignacion de memoria: " );
-   }
    listaCentros = obtenerCentros(listaCentros, archivoCentros);
    fclose(archivoCentros);
    imprimirServidores(listaCentros);
@@ -520,37 +583,39 @@ int main(int argc, char *argv[]){
    strcat(nombreArchivo,".txt");
    printf("Nombre de archivo log: %s\n", nombreArchivo);
    archivoLog = fopen(nombreArchivo,"w+");
-   escribirArchivoLog(nombreArchivo,"Estado Inicial", 0, bomba.inventario, "", "");
-   
    fclose(archivoLog);
+   escribirArchivoLog(nombreArchivo,"Estado Inicial", 0, bomba.inventario, "", "");
    
    obtenerTiemposRespuesta(listaCentros);
    printf("Tiempos de Respuesta obtenidos\n");
    
-   ordenarLista(&listaCentros);
+   listaCentros = ordenarLista(listaCentros);
    printf("Lista de Centros ordenada\n");
    imprimirServidores(listaCentros);
    tiempoMinimoRespuesta = listaCentros->tiempoRespuesta;
-   
-   //Creación de socket de la Bomba
-   descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
-   if (descriptorSocket < 0){
-      errorFatal("Error: No se pudo crear el socket\n");
-   }
    
    while(minuto < 480){
       printf("Minuto %d de la simulación. Inventario = %d\n", minuto, bomba.inventario);
       minutoSolicitudGasolina = predecirLlamadoCentro(bomba, minuto, tiempoMinimoRespuesta);
       printf("Minuto de Solicitud a Centros: %d\n", minutoSolicitudGasolina);
+      
       if(minutoSolicitudGasolina <= minuto){
-         solicitarEnvioGasolina(listaCentros, bomba, minuto, descriptorSocket);
+         minuto = solicitarEnvioGasolina(listaCentros, bomba, minuto);
+         
+         if(bomba.inventario == bomba.capacidadMaxima){
+            escribirArchivoLog(nombreArchivo,"Tanque full", minuto+5, 0, "", "");
+         }
       }
+      
       usleep(5*100000);
       consumirGasolina(&bomba);
       minuto = minuto + 5;
+      
+      if(bomba.inventario == 0){
+         escribirArchivoLog(nombreArchivo,"Tanque vacío", minuto, 0, "", "");
+      }
    }
-   
-   close(descriptorSocket);
+
    printf("*** Fin de la simulación ***\n");
    exit(EXIT_SUCCESS);   
 }

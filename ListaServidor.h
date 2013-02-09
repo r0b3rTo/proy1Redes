@@ -27,6 +27,6 @@ typedef struct Servidor *ListaServidor;/*Direccion de inicio de la lista */
 extern ListaServidor insertarServidor(ListaServidor, char*, char*,int,int);
 extern ListaServidor insertarTiempoRespuesta(ListaServidor,char*,int);
 extern ListaServidor buscarServidor(ListaServidor,char*);
-extern void ordenarLista(ListaServidor*);
+extern ListaServidor ordenarLista(ListaServidor);
 extern int length(ListaServidor);
 extern void imprimirServidores(ListaServidor);
