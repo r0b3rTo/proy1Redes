@@ -372,8 +372,8 @@ void * atenderSolicitud(void * argumento){
          pthread_mutex_unlock(&mutex_tiempoRespuesta);
          write(*parametros->descriptorSocket, tiempo, 100);
       } else {
-         solicitudGasolina = strtok(mensajeDelCliente,"&");
-         nombreBomba = strtok(NULL,"\n");
+         nombreBomba = strtok(mensajeDelCliente,"&");
+         solicitudGasolina = strtok(NULL,"\n");
          if ( strcmp(solicitudGasolina,"Solicitud de Gasolina") == 0 ){
             pthread_mutex_lock(&mutex_inventario);
             if(parametros->servidor->inventario >= 38000){
@@ -474,7 +474,7 @@ void * actualizarSimulacion(void *argumento){
 
    while(servidor->tiempoSimulacion < TIEMPO_SIMULACION){
       printf("Minuto %d de la simulación. Inventario = %d\n", servidor->tiempoSimulacion, servidor->inventario);
-      usleep(50*1000); //HLM hay que cambiar a 100*1000
+      usleep(50*10000); //HLM hay que cambiar a 100*1000
       pthread_mutex_lock(&mutex_inventario);
       if(servidor->inventario == 0){
          // Tanque vacío
