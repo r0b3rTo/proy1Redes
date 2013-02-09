@@ -48,11 +48,8 @@ ListaServidor insertarServidor(ListaServidor listaServidores, char* nombre, char
      nuevoServidor->direccion = auxDireccion;
      nuevoServidor->puerto = auxPuerto;
      nuevoServidor->tiempoRespuesta = auxTiempoRespuesta;
-     if(listaServidores != NULL){
-        nuevoServidor-> siguiente = listaServidores; 
-     }else{
-        nuevoServidor->siguiente = NULL;
-     }
+     nuevoServidor-> siguiente = listaServidores; 
+     
      listaServidores = nuevoServidor;
      
      return listaServidores;       

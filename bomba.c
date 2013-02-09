@@ -39,10 +39,17 @@ ListaServidor obtenerCentros(ListaServidor listaCentros, FILE *archivoServidores
       if(direccionServidor == NULL){
          terminar("Error de asignacion de memoria: " );
       }
+      //Obtiene el nombre del Centro
       nombreServidor = strtok(servidorInfo,"&");
+      
+      //Obtiene la direccion del Centro
       direccionServidor = strtok(NULL,"&");
+      
+      //Obtiene el puerto que corresponde al Centro
       puertoServidor = atoi(strtok(NULL,"&\n"));
-      listaCentros = insertarServidor(listaCentros,nombreServidor,direccionServidor,puertoServidor,0);
+      
+      //Inserta en la lista de Centros el Centro obtenido con tiempo de respuesta igual a -1
+      listaCentros = insertarServidor(listaCentros,nombreServidor,direccionServidor,puertoServidor,-1);
    }
    
    return listaCentros;
@@ -67,6 +74,7 @@ void escribirArchivoLog(char* nombreArchivoLog, char* mensaje, int tiempoActual,
    char* nombreCentro, char* resultadoPeticion){
    
    FILE *archivoLog;
+   
    archivoLog = fopen(nombreArchivoLog,"a");
    if(archivoLog == NULL){
       mensajeError("Error: No se puede accesar al archivo del log de la Bomba\n");
@@ -415,6 +423,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
    }
    indiceLista = listaCentros;
    
+   bzero(tiempoRespuesta,100);
    while(indiceLista != NULL){
       /* Obtener la dirección del Centro */
       bzero(&direccionServidor, sizeof(direccionServidor));
@@ -445,6 +454,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
             mensajeError("Error: No es posible recibir información del socket\n");
          }
       }
+      
       printf("Tiempo de Respuesta obtenido: %s\n", tiempoRespuesta);
       if(strcmp(tiempoRespuesta,"") != 0){
          tiempoLeido = atoi(tiempoRespuesta);
@@ -453,11 +463,9 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
       
       /* Cerrar el socket*/
       close(descriptorSocket);
-      if (indiceLista->siguiente!=NULL) {
-         indiceLista = indiceLista->siguiente;
-      } else {
-         indiceLista = NULL;
-      }
+         
+      indiceLista = indiceLista->siguiente;
+
    }
    
    printf("obtenerTiemposRespuesta finalizado\n");
@@ -498,41 +506,46 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoAc
    copiaListaCentros = listaCentros;
       
    while(copiaListaCentros != NULL){
-      /* Obtener la dirección del Centro */
-      bzero(&direccionServidor, sizeof(direccionServidor));
-      direccionServidor.sin_family = AF_INET;
-      direccionServidor.sin_addr.s_addr = inet_addr(copiaListaCentros->direccion);
-      direccionServidor.sin_port = htons(copiaListaCentros->puerto);
       
-      /* Abrir un socket */
-      descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
-      if (descriptorSocket < 0){
-         errorFatal("Error: No es posible abrir el socket");
-      }
-      printf("Socket para tiempos de respuesta de Centro %s abierto\n", copiaListaCentros->nombre);
+      if(copiaListaCentros->tiempoRespuesta != -1){  
+
+         /* Obtener la dirección del Centro */
+         bzero(&direccionServidor, sizeof(direccionServidor));
+         direccionServidor.sin_family = AF_INET;
+         direccionServidor.sin_addr.s_addr = inet_addr(copiaListaCentros->direccion);
+         direccionServidor.sin_port = htons(copiaListaCentros->puerto);
       
-      /* Conexión al Centro correspondiente */
-      if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
-         mensajeError("Error: No es posible conectarse con el centro\n");
-      } else {
-         /* Enviar solicitud de Tiempo de Respuesta*/
-         if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)*100) == 0){
-            mensajeError("Error: No es posible escribir en el socket\n");
+         /* Abrir un socket */
+         descriptorSocket = socket(AF_INET, SOCK_STREAM, 0);
+         if (descriptorSocket < 0){
+            errorFatal("Error: No es posible abrir el socket");
          }
+         printf("Socket para tiempos de respuesta de Centro %s abierto\n", copiaListaCentros->nombre);
+      
+         /* Conexión al Centro correspondiente */
+         if (connect(descriptorSocket, (struct sockaddr *) &direccionServidor, sizeof(direccionServidor)) < 0){
+            mensajeError("Error: No es posible conectarse con el centro\n");
+         } else {
+            /* Enviar solicitud de Tiempo de Respuesta*/
+            if (write(descriptorSocket, mensajeSolicitud, sizeof(mensajeSolicitud)*100) == 0){
+               mensajeError("Error: No es posible escribir en el socket\n");
+            }
         
-         /* Leer el Tiempo enviado por el Centro correspondiente*/
-         if (read(descriptorSocket, &respuestaSolicitud, sizeof(respuestaSolicitud)*100) < 0){
-            mensajeError("Error: No es posible recibir información del socket\n");
+            /* Leer el Tiempo enviado por el Centro correspondiente*/
+            if (read(descriptorSocket, &respuestaSolicitud, sizeof(respuestaSolicitud)*100) < 0){
+               mensajeError("Error: No es posible recibir información del socket\n");
+            }
          }
-      }
       
-      escribirArchivoLog(nombreArchivo,"Peticion", minutoActual, 0, copiaListaCentros->nombre, respuestaSolicitud);
+         escribirArchivoLog(nombreArchivo,"Peticion", minutoActual, 0, copiaListaCentros->nombre, respuestaSolicitud);
          
-      if(strcmp(respuestaSolicitud,"Ok") == 0){
-         printf("Solicitud de Gasolina aceptada por Centro %s\n", copiaListaCentros->nombre);
-         solicitudAceptada = 1;
-         tiempoEsperaCarga = copiaListaCentros->tiempoRespuesta;
-         break;
+         if(strcmp(respuestaSolicitud,"Ok") == 0){
+            printf("Solicitud de Gasolina aceptada por Centro %s\n", copiaListaCentros->nombre);
+            solicitudAceptada = 1;
+            tiempoEsperaCarga = copiaListaCentros->tiempoRespuesta;
+            break;
+         }
+      
       }
          
       copiaListaCentros = copiaListaCentros->siguiente;
