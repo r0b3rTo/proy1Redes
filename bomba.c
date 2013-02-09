@@ -385,7 +385,7 @@ void consumirGasolina(Bomba* bomba){
 void recibirGasolina(Bomba* bomba, int nuevaCarga){
    
    bomba->inventario = bomba->inventario + nuevaCarga;
-   
+   printf("Nuevo inventario: %d\n",bomba->inventario);
 }
 
 /* predecirLlamadoCentro
@@ -490,7 +490,7 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
  * bomba: apuntador a la estructura Bomba.
  * descriptorSocket: identificador del socket perteneciente a la Bomba.
 */
-int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoActual, char* nombreArchivo){
+int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba* bomba, int minutoActual, char* nombreArchivo){
    
    int solicitudAceptada = 0;
    int descriptorSocket;
@@ -505,7 +505,7 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoAc
       terminar("Error de asignacion de memoria: " );
    }
    
-   strcpy(mensajeSolicitud,bomba.nombreBomba);
+   strcpy(mensajeSolicitud,bomba->nombreBomba);
    strcat(mensajeSolicitud,"&");
    strcat(mensajeSolicitud,mensaje);
    
@@ -564,13 +564,10 @@ int solicitarEnvioGasolina(ListaServidor listaCentros, Bomba bomba, int minutoAc
    
    //Al haber una solicitud aceptada, se espera y se recibe la carga.
    if(solicitudAceptada){
-      if(tiempoEsperaCarga > 5){
-         tiempoEsperaExtra = tiempoEsperaCarga - 5; 
-         usleep(tiempoEsperaExtra*100000);
-         minutoActual = minutoActual + tiempoEsperaExtra; 
-      }
-      recibirGasolina(&bomba,CARGA_GANDOLA);
-      escribirArchivoLog(nombreArchivo,"Llegada de la gandola", minutoActual, bomba.inventario, "", "");
+      usleep(tiempoEsperaCarga*100000);
+      recibirGasolina(bomba,CARGA_GANDOLA);
+      minutoActual = minutoActual + tiempoEsperaCarga;
+      escribirArchivoLog(nombreArchivo,"Llegada de la gandola", minutoActual, bomba->inventario, "", "");
    }
    
    return minutoActual;
@@ -636,14 +633,14 @@ int main(int argc, char *argv[]){
       printf("Minuto de Solicitud a Centros: %d\n", minutoSolicitudGasolina);
       
       if(minutoSolicitudGasolina <= minuto){
-         minuto = solicitarEnvioGasolina(listaCentros, bomba, minuto, nombreArchivo);
+         minuto = solicitarEnvioGasolina(listaCentros, &bomba, minuto, nombreArchivo);
          
          if(bomba.inventario == bomba.capacidadMaxima){
-            escribirArchivoLog(nombreArchivo,"Tanque full", minuto+5, 0, "", "");
+            escribirArchivoLog(nombreArchivo,"Tanque full", minuto, 0, "", "");
          }
       }
       
-      usleep(5*100000);
+      usleep(50*10000);
       consumirGasolina(&bomba);
       minuto = minuto + 5;
       
