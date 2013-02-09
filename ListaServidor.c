@@ -125,8 +125,7 @@ ListaServidor ordenarLista(ListaServidor listaServidores){
       terminar("Error de asignacion de memoria: " );
    }
    copiaListaServidores = listaServidores;
-   ListaServidor cabeza, aux1, aux2;
-   cabeza,aux1 = listaServidores;
+   ListaServidor cabeza = listaServidores, aux1 = listaServidores, aux2;
    int indiceLista, longitud = length(copiaListaServidores);
    for(indiceLista = 1; indiceLista <= longitud; indiceLista++){
       

@@ -423,7 +423,6 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
    }
    indiceLista = listaCentros;
    
-   bzero(tiempoRespuesta,100);
    while(indiceLista != NULL){
       /* Obtener la dirección del Centro */
       bzero(&direccionServidor, sizeof(direccionServidor));
@@ -449,7 +448,6 @@ void obtenerTiemposRespuesta(ListaServidor listaCentros){
          }
 
          /* Leer el Tiempo enviado por el Centro correspondiente*/
-         bzero(tiempoRespuesta,100);
          if (read(descriptorSocket, &tiempoRespuesta, sizeof(tiempoRespuesta)*100) < 0){
             mensajeError("Error: No es posible recibir información del socket\n");
          }
